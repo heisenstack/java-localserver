@@ -1,124 +1,109 @@
 package src;
 
-import java.nio.channels.*;
 import java.net.InetSocketAddress;
-import java.io.IOException;
+import java.nio.channels.*;
 import java.util.*;
 
+import src.connection.Connection;
+import src.http.*;
+
 public class Server {
-    private Selector selector;
-    private Config config;
-    private Map<SelectionKey, Connection> connections;
-    
-    public Server(Config config) throws IOException {
+
+    private final Selector selector;
+    private final Config config;
+    private final Map<SocketChannel, Connection> connections = new HashMap<>();
+
+    public Server(Config config) throws Exception {
         this.config = config;
         this.selector = Selector.open();
-        this.connections = new HashMap<>();
-        
+        initServers();
+    }
+
+    private void initServers() throws Exception {
         for (int port : config.getPorts()) {
-            ServerSocketChannel serverChannel = ServerSocketChannel.open();
-            serverChannel.configureBlocking(false);
-            serverChannel.bind(new InetSocketAddress(config.getHost(), port));
-            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-            
-            System.out.println("Listening on " + config.getHost() + ":" + port);
+            ServerSocketChannel server = ServerSocketChannel.open();
+            server.configureBlocking(false);
+            server.bind(new InetSocketAddress(config.getHost(), port));
+            server.register(selector, SelectionKey.OP_ACCEPT);
+            System.out.println("Listening on " + port);
         }
     }
-    
+
     public void start() {
         while (true) {
             try {
                 selector.select(1000);
-                
-                Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
-                
-                while (keys.hasNext()) {
-                    SelectionKey key = keys.next();
-                    keys.remove();
-                    
-                    if (!key.isValid()) continue;
-                    
-                    if (key.isAcceptable()) {
-                        handleAccept(key);
-                    } else if (key.isReadable()) {
-                        handleRead(key);
-                    } else if (key.isWritable()) {
-                        handleWrite(key);
-                    }
-                }
-                
+                handleKeys();
                 cleanupTimeouts();
-                
-            } catch (IOException e) {
-                System.err.println("Error in event loop: " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("[ERROR] Event loop");
             }
         }
     }
-    
-    private void handleAccept(SelectionKey key) throws IOException {
-        ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
-        SocketChannel clientChannel = serverChannel.accept();
-        
-        if (clientChannel != null) {
-            clientChannel.configureBlocking(false);
-            SelectionKey clientKey = clientChannel.register(selector, SelectionKey.OP_READ);
-            
-            Connection conn = new Connection(clientChannel, config);
-            connections.put(clientKey, conn);
+
+    private void handleKeys() throws Exception {
+        Iterator<SelectionKey> it = selector.selectedKeys().iterator();
+        while (it.hasNext()) {
+            SelectionKey key = it.next();
+            it.remove();
+
+            if (!key.isValid()) continue;
+
+            if (key.isAcceptable()) accept(key);
+            else if (key.isReadable()) read(key);
+            else if (key.isWritable()) write(key);
         }
     }
-    
-    private void handleRead(SelectionKey key) {
-        Connection conn = connections.get(key);
+
+    private void accept(SelectionKey key) throws Exception {
+        ServerSocketChannel server = (ServerSocketChannel) key.channel();
+        SocketChannel client = server.accept();
+
+        client.configureBlocking(false);
+        client.register(selector, SelectionKey.OP_READ);
+
+        connections.put(client, new Connection(client));
+    }
+
+    private void read(SelectionKey key) {
+        SocketChannel client = (SocketChannel) key.channel();
+        Connection conn = connections.get(client);
+
         try {
             conn.read();
-            
+
             if (conn.isRequestComplete()) {
-                HttpRequest request = RequestParser.parse(conn.getBuffer());
-                HttpResponse response = Router.route(request, config);
-                conn.setResponse(response);
-                
+                HttpRequest req = RequestParser.parse(conn.getBuffer());
+                HttpResponse res = Router.route(req, config);
+                conn.setResponse(res);
                 key.interestOps(SelectionKey.OP_WRITE);
             }
-        } catch (IOException e) {
-            closeConnection(key);
+        } catch (Exception e) {
+            close(client);
         }
     }
-    
-    private void handleWrite(SelectionKey key) {
-        Connection conn = connections.get(key);
+
+    private void write(SelectionKey key) {
+        SocketChannel client = (SocketChannel) key.channel();
+        Connection conn = connections.get(client);
+
         try {
             conn.write();
-            
-            if (conn.isWriteComplete()) {
-                closeConnection(key);
-            }
-        } catch (IOException e) {
-            closeConnection(key);
+            if (conn.isWriteComplete()) close(client);
+        } catch (Exception e) {
+            close(client);
         }
     }
-    
-    private void closeConnection(SelectionKey key) {
-        connections.remove(key);
+
+    private void close(SocketChannel client) {
         try {
-            key.channel().close();
-        } catch (IOException e) {
-        }
-        key.cancel();
+            connections.remove(client);
+            client.close();
+        } catch (Exception ignored) {}
     }
-    
+
     private void cleanupTimeouts() {
         long now = System.currentTimeMillis();
-        connections.entrySet().removeIf(entry -> {
-            if (entry.getValue().isTimedOut(now)) {
-                try {
-                    entry.getKey().channel().close();
-                    entry.getKey().cancel();
-                } catch (IOException e) {
-                }
-                return true;
-            }
-            return false;
-        });
+        connections.values().removeIf(c -> c.isTimedOut(now));
     }
 }
