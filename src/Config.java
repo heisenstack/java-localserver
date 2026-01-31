@@ -6,6 +6,7 @@ public class Config {
     
     private List<Integer> ports;
     private String host;
+    private List<Route> routes;
 
     
     public Config() {
@@ -23,6 +24,23 @@ public class Config {
     }
     public void setHost(String host) {
         this.host = host;
+    }
+    public static class Route {
+        private String path;
+        private List<String> allowedMethods;
+
+        public String getPath() {
+            return path;
         }
+        public void setPath(String path) {
+            this.path = path;
+        }
+        public List<String> getAllowedMethods() {
+            return allowedMethods;
+        }
+        public void setAllowedMethods(List<String> allowedMethods) {
+            this.allowedMethods = allowedMethods;
+        }
+    }
     
 }
