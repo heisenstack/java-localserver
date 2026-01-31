@@ -10,6 +10,9 @@ public class Config {
     public Config() {
         this.ports = new ArrayList<>();
     }
+        public List<Integer> getPorts() {
+        return ports;
+    }
     
     
 }
