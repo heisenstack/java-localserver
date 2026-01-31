@@ -10,9 +10,11 @@ public class Config {
     public Config() {
         this.ports = new ArrayList<>();
     }
-        public List<Integer> getPorts() {
+    public List<Integer> getPorts() {
         return ports;
     }
-    
+    public void setPorts(List<Integer> ports) {
+        this.ports = ports;
+    }
     
 }
