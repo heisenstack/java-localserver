@@ -1,4 +1,4 @@
-package src.http;
+package src;
 
 import src.Config;
 
