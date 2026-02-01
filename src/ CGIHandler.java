@@ -28,6 +28,22 @@ public class CGIHandler {
                 }
             }
 
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (InputStream is = process.getInputStream()) {
+                byte[] buffer = new byte[1024];
+                int r;
+                while ((r = is.read(buffer)) != -1) {
+                    out.write(buffer, 0, r);
+                }
+            }
+
+            process.waitFor();
+
+            HttpResponse res = new HttpResponse(200, "OK");
+            res.addHeader("Content-Type", "text/html; charset=UTF-8");
+            res.setBody(out.toByteArray());
+            return res;
+
         } catch (Exception e) {
             return HttpResponse.internalError("CGI Error: " + e.getMessage());
         }
