@@ -14,7 +14,7 @@ public class JsonParser {
         this.index = 0;
     }
 
-    public Map<String, Object> parseObject() throws Exception {
+    public Map<String, Object> parseObject(){
         Map<String, Object> result = new LinkedHashMap<>();
         skipWhitespace();
 
@@ -165,6 +165,15 @@ public class JsonParser {
             return false;
         } else {
             throw new RuntimeException("Expected boolean at position " + index);
+        }
+    }
+        private Object parseNull() {
+        skipWhitespace();
+        if (json.startsWith("null", index)) {
+            index += 4;
+            return null;
+        } else {
+            throw new RuntimeException("Expected null at position " + index);
         }
     }
 }
