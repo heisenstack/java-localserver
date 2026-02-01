@@ -23,22 +23,22 @@ public class JsonParser {
         skipWhitespace();
         while (peek() != '}') {
             skipWhitespace();
-            
+
             String key = parseString();
-            
+
             skipWhitespace();
             if (next() != ':') {
-                throw new RuntimeException("Expected ':' after key at position " + pos);
+                throw new RuntimeException("Expected ':' after key at position " + index);
             }
-            
+
             skipWhitespace();
-            
+
             Object value = parseValue();
             result.put(key, value);
-            
+
             skipWhitespace();
             if (peek() == ',') {
-                next(); 
+                next();
             }
             skipWhitespace();
         }
@@ -65,4 +65,50 @@ public class JsonParser {
         }
     }
 
+    private Object parseValue() {
+        skipWhitespace();
+        char c = peek();
+
+        if (c == '"') {
+            return parseString();
+        } else if (c == '{') {
+            return parseObject();
+        } else if (c == '[') {
+            return parseArray();
+        } else if (c == 't' || c == 'f') {
+            return parseBoolean();
+        } else if (c == 'n') {
+            return parseNull();
+        } else if (c == '-' || Character.isDigit(c)) {
+            return parseNumber();
+        } else {
+            throw new RuntimeException("Unexpected character '" + c + "' at position " + pos);
+        }
+    }
+    private String parseString() {
+        skipWhitespace();
+        if (next() != '"') {
+            throw new RuntimeException("Expected '\"' at position " + pos);
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        while (peek() != '"') {
+            char c = next();
+            if (c == '\\') {
+                char escaped = next();
+                switch (escaped) {
+                    case 'n': sb.append('\n'); break;
+                    case 't': sb.append('\t'); break;
+                    case 'r': sb.append('\r'); break;
+                    case '\\': sb.append('\\'); break;
+                    case '"': sb.append('"'); break;
+                    default: sb.append(escaped);
+                }
+            } else {
+                sb.append(c);
+            }
+        }
+        next(); // consume closing '"'
+        return sb.toString();
+    }
 }
