@@ -21,7 +21,22 @@ public class JsonParser {
         }
         next();
         skipWhitespace();
+        while (peek() != '}') {
+            skipWhitespace();
 
+            skipWhitespace();
+            if (next() != ':') {
+                throw new RuntimeException("Expected ':' after key at position " + index);
+            }
+
+            skipWhitespace();
+
+            skipWhitespace();
+            if (peek() == ',') {
+                next();
+            }
+            skipWhitespace();
+        }
         return result;
     }
 
@@ -38,7 +53,8 @@ public class JsonParser {
         }
         return json.charAt(index++);
     }
-        private void skipWhitespace() {
+
+    private void skipWhitespace() {
         while (index < json.length() && Character.isWhitespace(json.charAt(index))) {
             index++;
         }
