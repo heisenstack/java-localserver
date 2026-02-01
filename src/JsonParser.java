@@ -136,4 +136,23 @@ public class JsonParser {
         next(); 
         return result;
     }
+        private Number parseNumber() {
+        skipWhitespace();
+        StringBuilder sb = new StringBuilder();
+        
+        if (peek() == '-') {
+            sb.append(next());
+        }
+        
+        while (index < json.length() && (Character.isDigit(peek()) || peek() == '.')) {
+            sb.append(next());
+        }
+        
+        String numStr = sb.toString();
+        if (numStr.contains(".")) {
+            return Double.parseDouble(numStr);
+        } else {
+            return Integer.parseInt(numStr);
+        }
+    }
 }
