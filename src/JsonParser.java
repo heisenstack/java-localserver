@@ -17,6 +17,7 @@ public class JsonParser {
         if (peek() != '{') {
             throw new RuntimeException("Expected '{' at position " + index);
         }
+        next();
         return result;
     }
 
@@ -26,7 +27,8 @@ public class JsonParser {
         }
         return json.charAt(index);
     }
-        private char next() {
+
+    private char next() {
         if (index >= json.length()) {
             throw new RuntimeException("Unexpected end of JSON");
         }
