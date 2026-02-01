@@ -26,5 +26,11 @@ public class JsonParser {
         }
         return json.charAt(index);
     }
+        private char next() {
+        if (pos >= json.length()) {
+            throw new RuntimeException("Unexpected end of JSON");
+        }
+        return json.charAt(pos++);
+    }
 
 }
