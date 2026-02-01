@@ -23,17 +23,22 @@ public class JsonParser {
         skipWhitespace();
         while (peek() != '}') {
             skipWhitespace();
-
+            
+            String key = parseString();
+            
             skipWhitespace();
             if (next() != ':') {
-                throw new RuntimeException("Expected ':' after key at position " + index);
+                throw new RuntimeException("Expected ':' after key at position " + pos);
             }
-
+            
             skipWhitespace();
-
+            
+            Object value = parseValue();
+            result.put(key, value);
+            
             skipWhitespace();
             if (peek() == ',') {
-                next();
+                next(); 
             }
             skipWhitespace();
         }
