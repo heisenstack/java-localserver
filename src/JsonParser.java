@@ -14,10 +14,14 @@ public class JsonParser {
 
     public Map<String, Object> parseObject() throws Exception {
         Map<String, Object> result = new LinkedHashMap<>();
+        skipWhitespace();
+
         if (peek() != '{') {
             throw new RuntimeException("Expected '{' at position " + index);
         }
         next();
+        skipWhitespace();
+
         return result;
     }
 
@@ -33,6 +37,11 @@ public class JsonParser {
             throw new RuntimeException("Unexpected end of JSON");
         }
         return json.charAt(index++);
+    }
+        private void skipWhitespace() {
+        while (index < json.length() && Character.isWhitespace(json.charAt(index))) {
+            index++;
+        }
     }
 
 }
