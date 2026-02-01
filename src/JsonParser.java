@@ -155,4 +155,16 @@ public class JsonParser {
             return Integer.parseInt(numStr);
         }
     }
+        private Boolean parseBoolean() {
+        skipWhitespace();
+        if (json.startsWith("true", index)) {
+            index += 4;
+            return true;
+        } else if (json.startsWith("false", index)) {
+            index += 5;
+            return false;
+        } else {
+            throw new RuntimeException("Expected boolean at position " + index);
+        }
+    }
 }
