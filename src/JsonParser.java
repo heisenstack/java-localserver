@@ -1,6 +1,8 @@
 package src;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class JsonParser {
@@ -82,13 +84,13 @@ public class JsonParser {
         } else if (c == '-' || Character.isDigit(c)) {
             return parseNumber();
         } else {
-            throw new RuntimeException("Unexpected character '" + c + "' at position " + pos);
+            throw new RuntimeException("Unexpected character '" + c + "' at position " + index);
         }
     }
     private String parseString() {
         skipWhitespace();
         if (next() != '"') {
-            throw new RuntimeException("Expected '\"' at position " + pos);
+            throw new RuntimeException("Expected '\"' at position " + index);
         }
         
         StringBuilder sb = new StringBuilder();
@@ -108,7 +110,30 @@ public class JsonParser {
                 sb.append(c);
             }
         }
-        next(); // consume closing '"'
+        next(); 
         return sb.toString();
+    }
+    private List<Object> parseArray() {
+        List<Object> result = new ArrayList<>();
+        
+        skipWhitespace();
+        if (next() != '[') {
+            throw new RuntimeException("Expected '[' at position " + index);
+        }
+        
+        skipWhitespace();
+        while (peek() != ']') {
+            skipWhitespace();
+            result.add(parseValue());
+            skipWhitespace();
+            
+            if (peek() == ',') {
+                next();
+            }
+            skipWhitespace();
+        }
+        
+        next(); 
+        return result;
     }
 }
