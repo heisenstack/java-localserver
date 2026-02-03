@@ -65,6 +65,10 @@ public class Config {
         public void setAllowedMethods(List<String> allowedMethods) {
             this.allowedMethods = allowedMethods;
         }
+
+        public void addAllowedMethod(String method) {
+            this.allowedMethods.add(method);
+        }
     }
 
 }

@@ -34,7 +34,7 @@ public class ConfigLoader {
     private static Config.Route parseRoute(Map<String, Object> json) {
         Config.Route route = new Config.Route();
         route.setPath(JsonParser.getString(json, "path", "/"));
-                List<Object> methods = SimpleJsonParser.getArray(json, "methods");
+                List<Object> methods = JsonParser.getArray(json, "methods");
         for (Object method : methods) {
             route.addAllowedMethod(method.toString());
         }
