@@ -13,13 +13,11 @@ public class ConfigLoader {
         Config config = new Config();
         config.setHost(JsonParser.getString(jsonMap, "host", "localhost"));
         List<Object> portsArray = JsonParser.getArray(jsonMap, "ports");
-                if (portsArray.isEmpty()) {
-            config.addPort(8080); 
-        } else {
+
             for (Object port : portsArray) {
                 config.addPort(((Number) port).intValue());
             }
-        }
+        
  
         return config;
     }
