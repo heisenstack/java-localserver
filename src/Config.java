@@ -34,6 +34,10 @@ public class Config {
         this.host = host;
     }
 
+    public void addRoute(Route route) {
+        this.routes.add(route);
+    }
+
     public List<Route> getRoutes() {
         return routes;
     }

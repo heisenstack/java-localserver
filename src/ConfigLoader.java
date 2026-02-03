@@ -13,14 +13,21 @@ public class ConfigLoader {
         Config config = new Config();
         config.setHost(JsonParser.getString(jsonMap, "host", "localhost"));
         List<Object> portsArray = JsonParser.getArray(jsonMap, "ports");
-                if (portsArray.isEmpty()) {
-            config.addPort(8080); 
+        if (portsArray.isEmpty()) {
+            config.addPort(8080);
         } else {
             for (Object port : portsArray) {
                 config.addPort(((Number) port).intValue());
             }
         }
- 
+        List<Object> routesArray = JsonParser.getArray(jsonMap, "routes");
+        for (Object routeObj : routesArray) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> routeMap = (Map<String, Object>) routeObj;
+            Config.Route route = parseRoute(routeMap);
+            config.addRoute(route);
+        }
+
         return config;
     }
 
