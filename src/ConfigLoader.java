@@ -31,4 +31,10 @@ public class ConfigLoader {
         return config;
     }
 
+    private static Config.Route parseRoute(Map<String, Object> json) {
+        Config.Route route = new Config.Route();
+        route.setPath(JsonParser.getString(json, "path", "/"));
+        return route;
+    }
+
 }
