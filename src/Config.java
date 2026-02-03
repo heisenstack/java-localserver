@@ -14,6 +14,10 @@ public class Config {
         this.routes = new ArrayList<>();
     }
 
+    public void addPort(int port) {
+        this.ports.add(port);
+    }
+
     public List<Integer> getPorts() {
         return ports;
     }

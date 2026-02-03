@@ -14,7 +14,7 @@ public class JsonParser {
         this.index = 0;
     }
 
-    public Map<String, Object> parseObject(){
+    public Map<String, Object> parseObject() {
         Map<String, Object> result = new LinkedHashMap<>();
         skipWhitespace();
 
@@ -87,67 +87,81 @@ public class JsonParser {
             throw new RuntimeException("Unexpected character '" + c + "' at position " + index);
         }
     }
+
     private String parseString() {
         skipWhitespace();
         if (next() != '"') {
             throw new RuntimeException("Expected '\"' at position " + index);
         }
-        
+
         StringBuilder sb = new StringBuilder();
         while (peek() != '"') {
             char c = next();
             if (c == '\\') {
                 char escaped = next();
                 switch (escaped) {
-                    case 'n': sb.append('\n'); break;
-                    case 't': sb.append('\t'); break;
-                    case 'r': sb.append('\r'); break;
-                    case '\\': sb.append('\\'); break;
-                    case '"': sb.append('"'); break;
-                    default: sb.append(escaped);
+                    case 'n':
+                        sb.append('\n');
+                        break;
+                    case 't':
+                        sb.append('\t');
+                        break;
+                    case 'r':
+                        sb.append('\r');
+                        break;
+                    case '\\':
+                        sb.append('\\');
+                        break;
+                    case '"':
+                        sb.append('"');
+                        break;
+                    default:
+                        sb.append(escaped);
                 }
             } else {
                 sb.append(c);
             }
         }
-        next(); 
+        next();
         return sb.toString();
     }
+
     private List<Object> parseArray() {
         List<Object> result = new ArrayList<>();
-        
+
         skipWhitespace();
         if (next() != '[') {
             throw new RuntimeException("Expected '[' at position " + index);
         }
-        
+
         skipWhitespace();
         while (peek() != ']') {
             skipWhitespace();
             result.add(parseValue());
             skipWhitespace();
-            
+
             if (peek() == ',') {
                 next();
             }
             skipWhitespace();
         }
-        
-        next(); 
+
+        next();
         return result;
     }
-        private Number parseNumber() {
+
+    private Number parseNumber() {
         skipWhitespace();
         StringBuilder sb = new StringBuilder();
-        
+
         if (peek() == '-') {
             sb.append(next());
         }
-        
+
         while (index < json.length() && (Character.isDigit(peek()) || peek() == '.')) {
             sb.append(next());
         }
-        
+
         String numStr = sb.toString();
         if (numStr.contains(".")) {
             return Double.parseDouble(numStr);
@@ -155,7 +169,8 @@ public class JsonParser {
             return Integer.parseInt(numStr);
         }
     }
-        private Boolean parseBoolean() {
+
+    private Boolean parseBoolean() {
         skipWhitespace();
         if (json.startsWith("true", index)) {
             index += 4;
@@ -167,7 +182,8 @@ public class JsonParser {
             throw new RuntimeException("Expected boolean at position " + index);
         }
     }
-        private Object parseNull() {
+
+    private Object parseNull() {
         skipWhitespace();
         if (json.startsWith("null", index)) {
             index += 4;
@@ -175,5 +191,19 @@ public class JsonParser {
         } else {
             throw new RuntimeException("Expected null at position " + index);
         }
+    }
+
+    public static String getString(Map<String, Object> map, String key, String defaultValue) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : defaultValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<Object> getArray(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof List) {
+            return (List<Object>) value;
+        }
+        return new ArrayList<>();
     }
 }
