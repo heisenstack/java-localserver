@@ -7,11 +7,13 @@ public class Config {
     private List<Integer> ports;
     private String host;
     private List<Route> routes;
+    private Map<String, String> errorPages;
 
     public Config() {
         this.ports = new ArrayList<>();
         this.host = "localhost";
         this.routes = new ArrayList<>();
+        this.errorPages = new HashMap<>();
     }
 
     public void addPort(int port) {
@@ -46,13 +48,24 @@ public class Config {
         this.routes = routes;
     }
 
+    public Map<String, String> getErrorPages() {
+        return errorPages;
+    }
+
+    public void setErrorPages(Map<String, String> errorPages) {
+        this.errorPages = errorPages;
+    }
+
     public static class Route {
         private String path;
+        private String root;
         private List<String> allowedMethods;
         private String defaultFile;
+        private boolean directoryListing;
 
         public Route() {
             this.allowedMethods = new ArrayList<>();
+            this.directoryListing = false;
         }
 
         public String getPath() {
@@ -61,6 +74,14 @@ public class Config {
 
         public void setPath(String path) {
             this.path = path;
+        }
+
+        public String getRoot() {
+            return root;
+        }
+
+        public void setRoot(String root) {
+            this.root = root;
         }
 
         public List<String> getAllowedMethods() {
@@ -84,6 +105,14 @@ public class Config {
 
         public void setDefaultFile(String defaultFile) {
             this.defaultFile = defaultFile;
+        }
+
+        public boolean isDirectoryListing() {
+            return directoryListing;
+        }
+
+        public void setDirectoryListing(boolean directoryListing) {
+            this.directoryListing = directoryListing;
         }
     }
 }

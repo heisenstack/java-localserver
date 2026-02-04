@@ -9,7 +9,6 @@ public class ConfigLoader {
         System.out.println("[DEBUG] Config file loaded");
         JsonParser parser = new JsonParser(content);
         Map<String, Object> jsonMap = parser.parseObject();
-        System.out.println("[DEBUG] Parsed config: " + jsonMap);
         
         Config config = new Config();
         config.setHost(JsonParser.getString(jsonMap, "host", "localhost"));
@@ -23,6 +22,15 @@ public class ConfigLoader {
             }
         }
         
+        Object errorPagesObj = jsonMap.get("error_pages");
+        if (errorPagesObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> errorPagesMap = (Map<String, Object>) errorPagesObj;
+            for (Map.Entry<String, Object> entry : errorPagesMap.entrySet()) {
+                config.getErrorPages().put(entry.getKey(), entry.getValue().toString());
+            }
+        }
+        
         List<Object> routesArray = JsonParser.getArray(jsonMap, "routes");
         System.out.println("[DEBUG] Routes array size: " + routesArray.size());
         
@@ -31,7 +39,9 @@ public class ConfigLoader {
             Map<String, Object> routeMap = (Map<String, Object>) routeObj;
             Config.Route route = parseRoute(routeMap);
             config.addRoute(route);
-            System.out.println("[DEBUG] Added route: " + route.getPath() + " with methods: " + route.getAllowedMethods());
+            System.out.println("[DEBUG] Added route: " + route.getPath() + 
+                             " root=" + route.getRoot() + 
+                             " methods=" + route.getAllowedMethods());
         }
 
         System.out.println("[DEBUG] Total routes loaded: " + config.getRoutes().size());
@@ -41,10 +51,9 @@ public class ConfigLoader {
     private static Config.Route parseRoute(Map<String, Object> json) {
         Config.Route route = new Config.Route();
         route.setPath(JsonParser.getString(json, "path", "/"));
+        route.setRoot(JsonParser.getString(json, "root", "www"));
         
         List<Object> methods = JsonParser.getArray(json, "methods");
-        System.out.println("[DEBUG] Parsing route with methods: " + methods);
-        
         for (Object method : methods) {
             route.addAllowedMethod(method.toString());
         }
@@ -53,6 +62,12 @@ public class ConfigLoader {
         if (defaultFile != null) {
             route.setDefaultFile(defaultFile);
         }
+        
+        Object dirListing = json.get("directory_listing");
+        if (dirListing instanceof Boolean) {
+            route.setDirectoryListing((Boolean) dirListing);
+        }
+        
         return route;
     }
 }
