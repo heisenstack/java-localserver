@@ -1,7 +1,6 @@
 package src;
 
 import src.http.*;
-
 import java.io.*;
 import java.util.*;
 
@@ -23,33 +22,33 @@ public class CGIHandler {
 
             Process process = pb.start();
 
-            if (request.getBody() != null) {
+            if (request.getBody() != null && request.getBody().length > 0) {
                 try (OutputStream os = process.getOutputStream()) {
                     os.write(request.getBody());
+                    os.flush();
                 }
             }
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            Map<String, String> cgiHeaders = new LinkedHashMap<>();
+            InputStream is = process.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+
+            Map<String, String> cgiHeaders = new HashMap<>();
             ByteArrayOutputStream bodyOut = new ByteArrayOutputStream();
 
-            boolean headersEnded = false;
+            String line;
             while ((line = reader.readLine()) != null) {
-                if (!headersEnded) {
-                    if (line.isEmpty()) {
-                        headersEnded = true;
-                    } else {
-                        int idx = line.indexOf(':');
-                        if (idx != -1) {
-                            String key = line.substring(0, idx).trim();
-                            String value = line.substring(idx + 1).trim();
-                            cgiHeaders.put(key, value);
-                        }
-                    }
-                } else {
-                    bodyOut.write((line + "\n").getBytes());
+                if (line.isEmpty()) break;
+                int idx = line.indexOf(":");
+                if (idx != -1) {
+                    String key = line.substring(0, idx).trim();
+                    String value = line.substring(idx + 1).trim();
+                    cgiHeaders.put(key, value);
                 }
+            }
+
+            int b;
+            while ((b = is.read()) != -1) {
+                bodyOut.write(b);
             }
 
             process.waitFor();
@@ -60,7 +59,6 @@ public class CGIHandler {
                 res.addHeader(h.getKey(), h.getValue());
             }
 
-            res.addHeader("Content-Type", cgiHeaders.getOrDefault("Content-Type", "text/html; charset=UTF-8"));
             res.setBody(bodyOut.toByteArray());
 
             return res;

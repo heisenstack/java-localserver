@@ -1,20 +1,30 @@
 package src;
 
 import src.http.HttpRequest;
+import src.http.HttpResponse;
+
+import java.nio.charset.StandardCharsets;
 
 public class TestCGI {
     public static void main(String[] args) {
         Config config = new Config();
         config.setCgiRoot("./cgi-bin");
 
-        HttpRequest req = new HttpRequest();
-        req.setMethod("GET");
-        req.setPath("/hello.sh");
+        HttpRequest getReq = new HttpRequest();
+        getReq.setMethod("GET");
+        getReq.setPath("/hello.sh");
 
-        System.out.println(
-            new String(
-                CGIHandler.handle(req, config).toByteBuffer().array()
-            )
-        );
+        HttpResponse getRes = CGIHandler.handle(getReq, config);
+        System.out.println("===== GET Request =====");
+        System.out.println(new String(getRes.toByteBuffer().array(), StandardCharsets.UTF_8));
+
+        HttpRequest postReq = new HttpRequest();
+        postReq.setMethod("POST");
+        postReq.setPath("/hello.sh");
+        postReq.setBody("name=John&age=25".getBytes(StandardCharsets.UTF_8));
+
+        HttpResponse postRes = CGIHandler.handle(postReq, config);
+        System.out.println("===== POST Request =====");
+        System.out.println(new String(postRes.toByteBuffer().array(), StandardCharsets.UTF_8));
     }
 }
