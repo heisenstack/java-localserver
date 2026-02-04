@@ -12,7 +12,7 @@ public class Config {
     private String defaultErrorPagePath;
     private int clientBodySizeLimit;
     private List<Route> routes;
-    private Map<String, String> errorPages;
+    private Map<Integer, String> errorPages;
 
     public Config() {
         this.ports = new ArrayList<>();
@@ -63,11 +63,11 @@ public class Config {
         this.routes = routes;
     }
 
-    public Map<String, String> getErrorPages() {
+    public Map<Integer, String> getErrorPages() {
         return errorPages;
     }
 
-    public void setErrorPages(Map<String, String> errorPages) {
+    public void setErrorPages(Map<Integer, String> errorPages) {
         this.errorPages = errorPages;
     }
 
