@@ -2,93 +2,42 @@ package src.http;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HttpResponse {
 
-    private String version = "HTTP/1.1";
-    private int statusCode;
-    private String reasonPhrase;
+    private static final String HTTP_VERSION = "HTTP/1.1";
 
-    private final Map<String, String> headers = new LinkedHashMap<>();
-    private byte[] body;
+    private final int statusCode;
+    private final String reason;
+    private final Map<String, String> headers = new HashMap<>();
+    private byte[] body = new byte[0];
 
-    public HttpResponse(int statusCode, String reasonPhrase) {
+    public HttpResponse(int statusCode, String reason) {
         this.statusCode = statusCode;
-        this.reasonPhrase = reasonPhrase;
-    }
-
-    public void addHeader(String key, String value) {
-        headers.put(key, value);
-    }
-
-    public void setBody(byte[] body) {
-        this.body = body;
-        addHeader("Content-Length", String.valueOf(body.length));
-    }
-
-    public void setBody(String body) {
-        setBody(body.getBytes(StandardCharsets.UTF_8));
+        this.reason = reason;
     }
 
     public int getStatusCode() {
         return statusCode;
     }
 
-   public ByteBuffer toByteBuffer() {
-    StringBuilder response = new StringBuilder();
-
-    response.append(version)
-            .append(" ")
-            .append(statusCode)
-            .append(" ")
-            .append(reasonPhrase)
-            .append("\r\n");
-
-    for (Map.Entry<String, String> h : headers.entrySet()) {
-        response.append(h.getKey())
-                .append(": ")
-                .append(h.getValue())
-                .append("\r\n");
+    public void setBody(byte[] body) {
+        this.body = body;
+        headers.put("Content-Length", String.valueOf(body.length));
     }
 
-    response.append("\r\n");
-
-    byte[] headerBytes = response.toString().getBytes(StandardCharsets.UTF_8);
-    
-    System.out.println("[DEBUG] Response headers:\n" + response.toString());
-
-    if (body == null) {
-        return ByteBuffer.wrap(headerBytes);
+    public void setBody(String body) {
+        setBody(body.getBytes(StandardCharsets.UTF_8));
+        headers.putIfAbsent("Content-Type", "text/plain; charset=UTF-8");
     }
 
-    ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + body.length);
-    buffer.put(headerBytes);
-    buffer.put(body);
-    buffer.flip();
-
-    return buffer;
-}
-
-    public static HttpResponse ok(String body) {
-        HttpResponse res = new HttpResponse(200, "OK");
-        res.addHeader("Content-Type", "text/html; charset=UTF-8");
-        res.setBody(body);
-        return res;
-    }
-
-    public static HttpResponse notFound(String body) {
-        HttpResponse res = new HttpResponse(404, "Not Found");
-        res.addHeader("Content-Type", "text/html; charset=UTF-8");
-        res.setBody(body);
-        return res;
-    }
-
-    public static HttpResponse internalError(String body) {
-        HttpResponse res = new HttpResponse(500, "Internal Server Error");
-        res.addHeader("Content-Type", "text/html; charset=UTF-8");
-        res.setBody(body);
-        return res;
+    public void addHeader(String key, String value) {
+        headers.put(key, value);
     }
 
     public void addCookie(String name, String value, int maxAge, String path) {
@@ -99,15 +48,10 @@ public class HttpResponse {
             cookie.append("; Max-Age=").append(maxAge);
         }
 
-        if (path != null) {
-            cookie.append("; Path=").append(path);
-        } else {
-            cookie.append("; Path=/");
-        }
-
+        cookie.append("; Path=").append(path != null ? path : "/");
         cookie.append("; HttpOnly");
 
-        addHeader("Set-Cookie", cookie.toString());
+        headers.put("Set-Cookie", cookie.toString());
     }
 
     public void addSessionCookie(String name, String value) {
@@ -117,5 +61,60 @@ public class HttpResponse {
     public void deleteCookie(String name) {
         addCookie(name, "", 0, "/");
     }
-    
+
+    public ByteBuffer toByteBuffer() {
+        headers.putIfAbsent("Date",
+            ZonedDateTime.now(ZoneOffset.UTC)
+                .format(DateTimeFormatter.RFC_1123_DATE_TIME)
+        );
+        headers.putIfAbsent("Connection", "close");
+
+        StringBuilder response = new StringBuilder();
+
+        response.append(HTTP_VERSION)
+                .append(" ")
+                .append(statusCode)
+                .append(" ")
+                .append(reason)
+                .append("\r\n");
+
+        for (Map.Entry<String, String> h : headers.entrySet()) {
+            response.append(h.getKey())
+                    .append(": ")
+                    .append(h.getValue())
+                    .append("\r\n");
+        }
+
+        response.append("\r\n");
+
+        byte[] headerBytes = response.toString().getBytes(StandardCharsets.UTF_8);
+
+        if (body == null || body.length == 0) {
+            return ByteBuffer.wrap(headerBytes);
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + body.length);
+        buffer.put(headerBytes);
+        buffer.put(body);
+        buffer.flip();
+        return buffer;
+    }
+
+    public static HttpResponse ok(String body) {
+        HttpResponse res = new HttpResponse(200, "OK");
+        res.setBody(body);
+        return res;
+    }
+
+    public static HttpResponse notFound(String body) {
+        HttpResponse res = new HttpResponse(404, "Not Found");
+        res.setBody(body);
+        return res;
+    }
+
+    public static HttpResponse internalError(String body) {
+        HttpResponse res = new HttpResponse(500, "Internal Server Error");
+        res.setBody(body);
+        return res;
+    }
 }
