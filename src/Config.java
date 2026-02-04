@@ -71,6 +71,10 @@ public class Config {
         this.errorPages = errorPages;
     }
 
+    public void addErrorPage(int statusCode, String filePath) {
+        this.errorPages.put(statusCode, filePath);
+    }
+
     public int getClientBodySizeLimit() {
         return clientBodySizeLimit;
     }
@@ -78,12 +82,15 @@ public class Config {
     public void setClientBodySizeLimit(int limit) {
         this.clientBodySizeLimit = limit;
     }
+
     public void setDefaultErrorPagePath(String path) {
         this.defaultErrorPagePath = path;
     }
+
     public String getDefaultErrorPagePath() {
         return defaultErrorPagePath;
     }
+
     public static class Route {
         private String path;
         private String root;

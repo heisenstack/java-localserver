@@ -1,6 +1,7 @@
 package src;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ public class JsonParser {
         }
         next(); // consume '{'
         skipWhitespace();
-        
+
         while (peek() != '}') {
             skipWhitespace();
 
@@ -124,7 +125,7 @@ public class JsonParser {
                 sb.append(c);
             }
         }
-        next(); 
+        next();
         return sb.toString();
     }
 
@@ -143,12 +144,12 @@ public class JsonParser {
             skipWhitespace();
 
             if (peek() == ',') {
-                next(); 
+                next();
             }
             skipWhitespace();
         }
 
-        next(); 
+        next();
         return result;
     }
 
@@ -207,5 +208,22 @@ public class JsonParser {
             return (List<Object>) value;
         }
         return new ArrayList<>();
+    }
+
+    public static int getInt(Map<String, Object> map, String key, int defaultValue) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return defaultValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> getObject(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof Map) {
+            return (Map<String, Object>) value;
+        }
+        return new HashMap<>();
     }
 }
