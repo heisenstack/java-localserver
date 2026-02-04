@@ -39,7 +39,7 @@ public class Router {
                 }
             }
             
-            Path filePath = Paths.get("www", requestPath);
+            Path filePath = Paths.get("src/www", requestPath);
             
             System.out.println("[FILE] Attempting to serve: " + filePath);
             
