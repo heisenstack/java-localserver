@@ -1,4 +1,4 @@
-console.log('LocalServer JavaScript is working! 🚀');
+console.log('LocalServer JavaScript is working!');
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded successfully');
