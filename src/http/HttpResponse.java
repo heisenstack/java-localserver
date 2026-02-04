@@ -2,67 +2,90 @@ package src.http;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class HttpResponse {
 
-    private final int statusCode;
-    private final String reason;
-    private final Map<String, String> headers = new HashMap<>();
-    private byte[] body = new byte[0];
+    private String version = "HTTP/1.1";
+    private int statusCode;
+    private String reasonPhrase;
 
-    public HttpResponse(int statusCode, String reason) {
+    private final Map<String, String> headers = new LinkedHashMap<>();
+    private byte[] body;
+
+    public HttpResponse(int statusCode, String reasonPhrase) {
         this.statusCode = statusCode;
-        this.reason = reason;
-    }
-
-    public void setBody(byte[] body) {
-        this.body = body;
-        headers.put("Content-Length", String.valueOf(body.length));
-    }
-
-    public void setBody(String body) {
-        setBody(body.getBytes(StandardCharsets.UTF_8));
+        this.reasonPhrase = reasonPhrase;
     }
 
     public void addHeader(String key, String value) {
         headers.put(key, value);
     }
 
+    public void setBody(byte[] body) {
+        this.body = body;
+        addHeader("Content-Length", String.valueOf(body.length));
+    }
+
+    public void setBody(String body) {
+        setBody(body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
     public ByteBuffer toByteBuffer() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("HTTP/1.1 ")
-          .append(statusCode)
-          .append(" ")
-          .append(reason)
-          .append("\r\n");
+        StringBuilder response = new StringBuilder();
+
+        response.append(version)
+                .append(" ")
+                .append(statusCode)
+                .append(" ")
+                .append(reasonPhrase)
+                .append("\r\n");
 
         for (Map.Entry<String, String> h : headers.entrySet()) {
-            sb.append(h.getKey()).append(": ").append(h.getValue()).append("\r\n");
+            response.append(h.getKey())
+                    .append(": ")
+                    .append(h.getValue())
+                    .append("\r\n");
         }
 
-        sb.append("\r\n");
+        response.append("\r\n");
 
-        byte[] head = sb.toString().getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buffer = ByteBuffer.allocate(head.length + body.length);
-        buffer.put(head);
+        byte[] headerBytes = response.toString().getBytes(StandardCharsets.UTF_8);
+
+        if (body == null) {
+            return ByteBuffer.wrap(headerBytes);
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + body.length);
+        buffer.put(headerBytes);
         buffer.put(body);
         buffer.flip();
+
         return buffer;
     }
 
-    public static HttpResponse notFound(String msg) {
-        HttpResponse res = new HttpResponse(404, "Not Found");
-        res.setBody(msg);
-        res.addHeader("Content-Type", "text/plain");
+    public static HttpResponse ok(String body) {
+        HttpResponse res = new HttpResponse(200, "OK");
+        res.addHeader("Content-Type", "text/html; charset=UTF-8");
+        res.setBody(body);
         return res;
     }
 
-    public static HttpResponse internalError(String msg) {
+    public static HttpResponse notFound(String body) {
+        HttpResponse res = new HttpResponse(404, "Not Found");
+        res.addHeader("Content-Type", "text/html; charset=UTF-8");
+        res.setBody(body);
+        return res;
+    }
+
+    public static HttpResponse internalError(String body) {
         HttpResponse res = new HttpResponse(500, "Internal Server Error");
-        res.setBody(msg);
-        res.addHeader("Content-Type", "text/plain");
+        res.addHeader("Content-Type", "text/html; charset=UTF-8");
+        res.setBody(body);
         return res;
     }
 }

@@ -39,6 +39,14 @@ public class Config {
         this.host = host;
     }
     
+    public String getCgiRoot() {
+        return cgiRoot;
+    }
+
+    public void setCgiRoot(String cgiRoot) {
+        this.cgiRoot = cgiRoot;
+    }
+    
     public void addRoute(Route route) {
         this.routes.add(route);
     }
