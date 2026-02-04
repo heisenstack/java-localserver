@@ -2,10 +2,13 @@ package src;
 
 import java.util.*;
 
+// import src.Config.Route;
+
 public class Config {
 
     private List<Integer> ports;
     private String host;
+    private String cgiRoot;
     private List<Route> routes;
     private Map<String, String> errorPages;
 
@@ -35,7 +38,7 @@ public class Config {
     public void setHost(String host) {
         this.host = host;
     }
-
+    
     public void addRoute(Route route) {
         this.routes.add(route);
     }

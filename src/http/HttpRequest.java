@@ -7,79 +7,78 @@ public class HttpRequest {
     private String method;
     private String path;
     private String version;
-    private final Map<String, String> headers = new HashMap<>();
     private byte[] body;
+
+    private final Map<String, String> headers = new HashMap<>();
     private final Map<String, String> cookies = new HashMap<>();
     private final Map<String, String> queryParams = new HashMap<>();
     private final Map<String, String> formData = new HashMap<>();
     private List<MultipartParser.Part> multipartParts = new ArrayList<>();
 
-    public String getMethod() { 
-        return method; 
+    public String getMethod() {
+        return method;
     }
 
-    public void setMethod(String m) { 
-        this.method = m; 
+    public void setMethod(String m) {
+        this.method = m;
     }
 
-    public String getPath() { 
-        return path; 
+    public String getPath() {
+        return path;
     }
 
-    public void setPath(String p) { 
-        this.path = p; 
+    public void setPath(String p) {
+        this.path = p;
     }
 
-    public String getVersion() { 
-        return version; 
+    public String getVersion() {
+        return version;
     }
 
-    public void setVersion(String v) { 
-        this.version = v; 
+    public void setVersion(String v) {
+        this.version = v;
     }
 
-    public Map<String, String> getHeaders() { 
-        return headers; 
+    public Map<String, String> getHeaders() {
+        return headers;
     }
 
     public void addHeader(String k, String v) {
         headers.put(k.toLowerCase(), v);
     }
-    
+
     public String getHeader(String name) {
         return headers.get(name.toLowerCase());
     }
 
-    public byte[] getBody() { 
-        return body; 
+    public byte[] getBody() {
+        return body;
     }
 
-    public void setBody(byte[] b) { 
-        this.body = b; 
+    public void setBody(byte[] b) {
+        this.body = b;
     }
 
-    public Map<String, String> getCookies() { 
-        return cookies; 
+    public Map<String, String> getCookies() {
+        return cookies;
     }
 
     public void addCookie(String k, String v) {
         cookies.put(k, v);
     }
-    
 
     public String getCookie(String name) {
         return cookies.get(name);
     }
-    
+
     public Map<String, String> getQueryParams() {
         return queryParams;
     }
-    
 
     public void addQueryParam(String key, String value) {
         queryParams.put(key, value);
     }
-    
+
     public Map<String, String> getFormData() {
         return formData;
     }
@@ -87,69 +86,62 @@ public class HttpRequest {
     public List<MultipartParser.Part> getMultipartParts() {
         return multipartParts;
     }
-    
 
     public void setMultipartParts(List<MultipartParser.Part> parts) {
         this.multipartParts = parts;
     }
-    
+
     public void parseBody() {
         if (body == null || body.length == 0) return;
-        
+
         String contentType = getHeader("content-type");
-        
+
         if (contentType != null && contentType.contains("application/x-www-form-urlencoded")) {
-            String bodyStr = new String(body);
-            parseQueryString(bodyStr, formData);
+            parseQueryString(new String(body), formData);
         } else if (contentType != null && contentType.contains("multipart/form-data")) {
             parseMultipart();
         }
     }
-    
-private void parseMultipart() {
-    String contentType = getHeader("content-type");
-    if (contentType == null) return;
-    
-    String boundary = null;
-    String[] parts = contentType.split(";");
-    for (String part : parts) {
-        part = part.trim();
-        if (part.startsWith("boundary=")) {
-            boundary = part.substring(9);
-            break;
-        }
-    }
-    
-    if (boundary != null && body != null) {
-        try {
-            multipartParts = MultipartParser.parse(body, boundary);
-            
-            for (MultipartParser.Part part : multipartParts) {
-                if (!part.isFile()) {
-                    formData.put(part.getName(), new String(part.getData()));
-                }
+
+    private void parseMultipart() {
+        String contentType = getHeader("content-type");
+        if (contentType == null) return;
+
+        String boundary = null;
+        for (String part : contentType.split(";")) {
+            part = part.trim();
+            if (part.startsWith("boundary=")) {
+                boundary = part.substring(9);
+                break;
             }
-        } catch (Exception e) {
-            System.err.println("[ERROR] Failed to parse multipart data: " + e.getMessage());
-            e.printStackTrace();
+        }
+
+        if (boundary != null && body != null) {
+            try {
+                multipartParts = MultipartParser.parse(body, boundary);
+                for (MultipartParser.Part part : multipartParts) {
+                    if (!part.isFile()) {
+                        formData.put(part.getName(), new String(part.getData()));
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("[ERROR] Multipart parse failed: " + e.getMessage());
+            }
         }
     }
-}
-    
 
     private void parseQueryString(String query, Map<String, String> target) {
         if (query == null || query.isEmpty()) return;
-        
-        String[] pairs = query.split("&");
-        for (String pair : pairs) {
+
+        for (String pair : query.split("&")) {
             String[] kv = pair.split("=", 2);
             if (kv.length == 2) {
                 try {
-                    String key = java.net.URLDecoder.decode(kv[0], "UTF-8");
-                    String value = java.net.URLDecoder.decode(kv[1], "UTF-8");
-                    target.put(key, value);
-                } catch (Exception e) {
-                }
+                    target.put(
+                        java.net.URLDecoder.decode(kv[0], "UTF-8"),
+                        java.net.URLDecoder.decode(kv[1], "UTF-8")
+                    );
+                } catch (Exception ignored) {}
             }
         }
     }

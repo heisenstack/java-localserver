@@ -10,17 +10,16 @@ public class HttpResponse {
     private final int statusCode;
     private final String reason;
     private final Map<String, String> headers = new HashMap<>();
-    private byte[] body;
+    private byte[] body = new byte[0];
 
     public HttpResponse(int statusCode, String reason) {
         this.statusCode = statusCode;
         this.reason = reason;
-        this.body = new byte[0];
     }
 
     public void setBody(byte[] body) {
         this.body = body;
-        this.headers.put("Content-Length", String.valueOf(body.length));
+        headers.put("Content-Length", String.valueOf(body.length));
     }
 
     public void setBody(String body) {
@@ -28,30 +27,42 @@ public class HttpResponse {
     }
 
     public void addHeader(String key, String value) {
-        this.headers.put(key, value);
+        headers.put(key, value);
     }
 
     public ByteBuffer toByteBuffer() {
         StringBuilder sb = new StringBuilder();
-        
-        // Status line
-        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(reason).append("\r\n");
-        
-        // Headers
-        for (Map.Entry<String, String> header : headers.entrySet()) {
-            sb.append(header.getKey()).append(": ").append(header.getValue()).append("\r\n");
+        sb.append("HTTP/1.1 ")
+          .append(statusCode)
+          .append(" ")
+          .append(reason)
+          .append("\r\n");
+
+        for (Map.Entry<String, String> h : headers.entrySet()) {
+            sb.append(h.getKey()).append(": ").append(h.getValue()).append("\r\n");
         }
-        
-        // Empty line
+
         sb.append("\r\n");
-        
-        // Combine headers and body
-        byte[] headerBytes = sb.toString().getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + body.length);
-        buffer.put(headerBytes);
+
+        byte[] head = sb.toString().getBytes(StandardCharsets.UTF_8);
+        ByteBuffer buffer = ByteBuffer.allocate(head.length + body.length);
+        buffer.put(head);
         buffer.put(body);
         buffer.flip();
-        
         return buffer;
+    }
+
+    public static HttpResponse notFound(String msg) {
+        HttpResponse res = new HttpResponse(404, "Not Found");
+        res.setBody(msg);
+        res.addHeader("Content-Type", "text/plain");
+        return res;
+    }
+
+    public static HttpResponse internalError(String msg) {
+        HttpResponse res = new HttpResponse(500, "Internal Server Error");
+        res.setBody(msg);
+        res.addHeader("Content-Type", "text/plain");
+        return res;
     }
 }
