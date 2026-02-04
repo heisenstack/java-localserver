@@ -1,9 +1,9 @@
 package src;
 
-// import src.Config;
 import src.http.*;
 
 import java.io.*;
+import java.util.*;
 
 public class CGIHandler {
 
@@ -29,20 +29,40 @@ public class CGIHandler {
                 }
             }
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            try (InputStream is = process.getInputStream()) {
-                byte[] buffer = new byte[1024];
-                int r;
-                while ((r = is.read(buffer)) != -1) {
-                    out.write(buffer, 0, r);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            Map<String, String> cgiHeaders = new LinkedHashMap<>();
+            ByteArrayOutputStream bodyOut = new ByteArrayOutputStream();
+
+            boolean headersEnded = false;
+            while ((line = reader.readLine()) != null) {
+                if (!headersEnded) {
+                    if (line.isEmpty()) {
+                        headersEnded = true;
+                    } else {
+                        int idx = line.indexOf(':');
+                        if (idx != -1) {
+                            String key = line.substring(0, idx).trim();
+                            String value = line.substring(idx + 1).trim();
+                            cgiHeaders.put(key, value);
+                        }
+                    }
+                } else {
+                    bodyOut.write((line + "\n").getBytes());
                 }
             }
 
             process.waitFor();
 
             HttpResponse res = new HttpResponse(200, "OK");
-            res.addHeader("Content-Type", "text/html; charset=UTF-8");
-            res.setBody(out.toByteArray());
+
+            for (Map.Entry<String, String> h : cgiHeaders.entrySet()) {
+                res.addHeader(h.getKey(), h.getValue());
+            }
+
+            res.addHeader("Content-Type", cgiHeaders.getOrDefault("Content-Type", "text/html; charset=UTF-8"));
+            res.setBody(bodyOut.toByteArray());
+
             return res;
 
         } catch (Exception e) {
