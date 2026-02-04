@@ -74,12 +74,30 @@ public class Server {
 
             if (conn.isRequestComplete()) {
                 HttpRequest req = RequestParser.parse(conn.getBuffer());
+                
+                // Check body size limit (413 Payload Too Large)
+                int bodySize = req.getBody().length;
+                if (bodySize > config.getClientBodySizeLimit()) {
+                    System.out.println("[413] Request body too large: " + bodySize + " bytes");
+                    HttpResponse res = createErrorResponse(413, "Payload Too Large");
+                    conn.setResponse(res);
+                    key.interestOps(SelectionKey.OP_WRITE);
+                    return;
+                }
+                
                 HttpResponse res = Router.route(req, config);
                 conn.setResponse(res);
                 key.interestOps(SelectionKey.OP_WRITE);
             }
         } catch (Exception e) {
-            close(client);
+            System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
+            try {
+                HttpResponse res = createErrorResponse(400, "Bad Request");
+                conn.setResponse(res);
+                key.interestOps(SelectionKey.OP_WRITE);
+            } catch (Exception ex) {
+                close(client);
+            }
         }
     }
 
@@ -105,5 +123,12 @@ public class Server {
     private void cleanupTimeouts() {
         long now = System.currentTimeMillis();
         connections.values().removeIf(c -> c.isTimedOut(now));
+    }
+    
+    private HttpResponse createErrorResponse(int statusCode, String reason) {
+        HttpResponse response = new HttpResponse(statusCode, reason);
+        response.setBody(reason);
+        response.addHeader("Content-Type", "text/plain");
+        return response;
     }
 }

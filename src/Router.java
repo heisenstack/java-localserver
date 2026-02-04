@@ -2,9 +2,12 @@ package src;
 
 import src.http.HttpRequest;
 import src.http.HttpResponse;
+import src.http.MultipartParser;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.FileOutputStream;
+import java.util.List;
 
 public class Router {
     
@@ -21,12 +24,153 @@ public class Router {
                 }
                 
                 System.out.println("[MATCH] Route matched: " + route.getPath());
-                return serveFile(request, route, config);
+                
+                // Handle different HTTP methods
+                if (method.equals("GET")) {
+                    return handleGet(request, route, config);
+                } else if (method.equals("POST")) {
+                    return handlePost(request, route, config);
+                } else if (method.equals("DELETE")) {
+                    return handleDelete(request, route, config);
+                }
+                
+                return createErrorResponse(405, "Method Not Allowed", config);
             }
         }
         
         System.out.println("[404] No route matched for: " + path);
         return createErrorResponse(404, "Not Found", config);
+    }
+    
+    private static HttpResponse handleGet(HttpRequest request, Config.Route route, Config config) {
+        return serveFile(request, route, config);
+    }
+    
+    private static HttpResponse handlePost(HttpRequest request, Config.Route route, Config config) {
+        String contentType = request.getHeaders().get("content-type");
+        
+        if (contentType != null && contentType.startsWith("multipart/form-data")) {
+            return handleFileUpload(request, route, config);
+        } else {
+            // Handle regular form data
+            String body = new String(request.getBody());
+            System.out.println("[POST] Body: " + body);
+            
+            HttpResponse response = new HttpResponse(200, "OK");
+            String responseBody = "POST received successfully\nBody: " + body;
+            response.setBody(responseBody);
+            response.addHeader("Content-Type", "text/plain");
+            response.addHeader("Server", "LocalServer/1.0");
+            
+            return response;
+        }
+    }
+    
+    private static HttpResponse handleFileUpload(HttpRequest request, Config.Route route, Config config) {
+        try {
+            String contentType = request.getHeaders().get("content-type");
+            
+            // Extract boundary from content-type header
+            String boundary = null;
+            if (contentType != null) {
+                for (String part : contentType.split(";")) {
+                    part = part.trim();
+                    if (part.startsWith("boundary=")) {
+                        boundary = part.substring(9);
+                        break;
+                    }
+                }
+            }
+            
+            if (boundary == null) {
+                return createErrorResponse(400, "Bad Request: Missing boundary", config);
+            }
+            
+            // Parse multipart data
+            List<MultipartParser.Part> parts = MultipartParser.parse(request.getBody(), boundary);
+            
+            // Create uploads directory if it doesn't exist
+            String rootDir = route.getRoot();
+            if (!rootDir.startsWith("src/")) {
+                rootDir = "src/" + rootDir;
+            }
+            
+            Path uploadsDir = Paths.get(rootDir + "/uploads");
+            if (!Files.exists(uploadsDir)) {
+                Files.createDirectories(uploadsDir);
+            }
+            
+            StringBuilder responseBody = new StringBuilder("Files uploaded successfully:\n");
+            
+            for (MultipartParser.Part part : parts) {
+                if (part.getFilename() != null && !part.getFilename().isEmpty()) {
+                    // Save file
+                    Path filePath = uploadsDir.resolve(part.getFilename());
+                    try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
+                        fos.write(part.getData());
+                    }
+                    responseBody.append("- ").append(part.getFilename()).append(" (")
+                               .append(part.getData().length).append(" bytes)\n");
+                    System.out.println("[UPLOAD] Saved: " + filePath);
+                }
+            }
+            
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.setBody(responseBody.toString());
+            response.addHeader("Content-Type", "text/plain");
+            response.addHeader("Server", "LocalServer/1.0");
+            
+            return response;
+            
+        } catch (Exception e) {
+            System.err.println("[500] Upload error: " + e.getMessage());
+            e.printStackTrace();
+            return createErrorResponse(500, "Internal Server Error: " + e.getMessage(), config);
+        }
+    }
+    
+    private static HttpResponse handleDelete(HttpRequest request, Config.Route route, Config config) {
+        try {
+            String requestPath = request.getPath();
+            
+            if (!route.getPath().equals("/")) {
+                requestPath = requestPath.substring(route.getPath().length());
+            }
+            
+            String rootDir = route.getRoot();
+            if (!rootDir.startsWith("src/")) {
+                rootDir = "src/" + rootDir;
+            }
+            
+            Path filePath = Paths.get(rootDir + requestPath).normalize();
+            
+            // Security: prevent directory traversal
+            if (!filePath.startsWith(Paths.get(rootDir).normalize())) {
+                System.out.println("[403] Directory traversal attempt blocked");
+                return createErrorResponse(403, "Forbidden", config);
+            }
+            
+            // Check if file exists
+            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
+                System.out.println("[404] File not found: " + filePath);
+                return createErrorResponse(404, "Not Found", config);
+            }
+            
+            // Delete file
+            Files.delete(filePath);
+            System.out.println("[DELETE] Deleted: " + filePath);
+            
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.setBody("File deleted: " + requestPath);
+            response.addHeader("Content-Type", "text/plain");
+            response.addHeader("Server", "LocalServer/1.0");
+            
+            return response;
+            
+        } catch (Exception e) {
+            System.err.println("[ERROR] Failed to delete file: " + e.getMessage());
+            return createErrorResponse(500, "Internal Server Error", config);
+        }
     }
     
     private static HttpResponse serveFile(HttpRequest request, Config.Route route, Config config) {
@@ -91,7 +235,7 @@ public class Router {
     private static HttpResponse createErrorResponse(int statusCode, String reason, Config config) {
         HttpResponse response = new HttpResponse(statusCode, reason);
         
-        String errorPagePath = config.getErrorPages().get(String.valueOf(statusCode));
+        String errorPagePath = config.getErrorPages().get(statusCode);
         if (errorPagePath != null) {
             try {
                 Path errorFile = Paths.get("src/" + errorPagePath);
@@ -107,14 +251,14 @@ public class Router {
         }
         
         String html = "<!DOCTYPE html>\n" +
-                     "<html>\n" +
-                     "<head><title>" + statusCode + " " + reason + "</title></head>\n" +
-                     "<body>\n" +
-                     "<​h1>" + statusCode + " " + reason + "</h1>\n" +
-                     "<hr>\n" +
-                     "<p>LocalServer/1.0</p>\n" +
-                     "</body>\n" +
-                     "<​/html>";
+                    "<html>\n" +
+                    "<head><title>" + statusCode + " " + reason + "</title></head>\n" +
+                    "<body>\n" +
+                    "<​h1>" + statusCode + " " + reason + "</h1>\n" +
+                    "<hr>\n" +
+                    "<p>LocalServer/1.0</p>\n" +
+                    "</body>\n" +
+                    "<​/html>";
         
         response.setBody(html);
         response.addHeader("Content-Type", "text/html");
