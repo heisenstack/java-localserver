@@ -9,6 +9,8 @@ public class Config {
     private List<Integer> ports;
     private String host;
     private String cgiRoot;
+    private String defaultErrorPagePath;
+    private int clientBodySizeLimit;
     private List<Route> routes;
     private Map<String, String> errorPages;
 
@@ -17,6 +19,8 @@ public class Config {
         this.host = "localhost";
         this.routes = new ArrayList<>();
         this.errorPages = new HashMap<>();
+        this.clientBodySizeLimit = 1048576;
+
     }
 
     public void addPort(int port) {
@@ -38,7 +42,7 @@ public class Config {
     public void setHost(String host) {
         this.host = host;
     }
-    
+
     public String getCgiRoot() {
         return cgiRoot;
     }
@@ -46,7 +50,7 @@ public class Config {
     public void setCgiRoot(String cgiRoot) {
         this.cgiRoot = cgiRoot;
     }
-    
+
     public void addRoute(Route route) {
         this.routes.add(route);
     }
@@ -67,6 +71,19 @@ public class Config {
         this.errorPages = errorPages;
     }
 
+    public int getClientBodySizeLimit() {
+        return clientBodySizeLimit;
+    }
+
+    public void setClientBodySizeLimit(int limit) {
+        this.clientBodySizeLimit = limit;
+    }
+    public void setDefaultErrorPagePath(String path) {
+        this.defaultErrorPagePath = path;
+    }
+    public String getDefaultErrorPagePath() {
+        return defaultErrorPagePath;
+    }
     public static class Route {
         private String path;
         private String root;
@@ -125,5 +142,6 @@ public class Config {
         public void setDirectoryListing(boolean directoryListing) {
             this.directoryListing = directoryListing;
         }
+
     }
 }
