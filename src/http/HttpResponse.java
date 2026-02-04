@@ -35,38 +35,40 @@ public class HttpResponse {
         return statusCode;
     }
 
-    public ByteBuffer toByteBuffer() {
-        StringBuilder response = new StringBuilder();
+   public ByteBuffer toByteBuffer() {
+    StringBuilder response = new StringBuilder();
 
-        response.append(version)
-                .append(" ")
-                .append(statusCode)
-                .append(" ")
-                .append(reasonPhrase)
+    response.append(version)
+            .append(" ")
+            .append(statusCode)
+            .append(" ")
+            .append(reasonPhrase)
+            .append("\r\n");
+
+    for (Map.Entry<String, String> h : headers.entrySet()) {
+        response.append(h.getKey())
+                .append(": ")
+                .append(h.getValue())
                 .append("\r\n");
-
-        for (Map.Entry<String, String> h : headers.entrySet()) {
-            response.append(h.getKey())
-                    .append(": ")
-                    .append(h.getValue())
-                    .append("\r\n");
-        }
-
-        response.append("\r\n");
-
-        byte[] headerBytes = response.toString().getBytes(StandardCharsets.UTF_8);
-
-        if (body == null) {
-            return ByteBuffer.wrap(headerBytes);
-        }
-
-        ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + body.length);
-        buffer.put(headerBytes);
-        buffer.put(body);
-        buffer.flip();
-
-        return buffer;
     }
+
+    response.append("\r\n");
+
+    byte[] headerBytes = response.toString().getBytes(StandardCharsets.UTF_8);
+    
+    System.out.println("[DEBUG] Response headers:\n" + response.toString());
+
+    if (body == null) {
+        return ByteBuffer.wrap(headerBytes);
+    }
+
+    ByteBuffer buffer = ByteBuffer.allocate(headerBytes.length + body.length);
+    buffer.put(headerBytes);
+    buffer.put(body);
+    buffer.flip();
+
+    return buffer;
+}
 
     public static HttpResponse ok(String body) {
         HttpResponse res = new HttpResponse(200, "OK");
@@ -88,4 +90,32 @@ public class HttpResponse {
         res.setBody(body);
         return res;
     }
+
+    public void addCookie(String name, String value, int maxAge, String path) {
+        StringBuilder cookie = new StringBuilder();
+        cookie.append(name).append("=").append(value);
+
+        if (maxAge >= 0) {
+            cookie.append("; Max-Age=").append(maxAge);
+        }
+
+        if (path != null) {
+            cookie.append("; Path=").append(path);
+        } else {
+            cookie.append("; Path=/");
+        }
+
+        cookie.append("; HttpOnly");
+
+        addHeader("Set-Cookie", cookie.toString());
+    }
+
+    public void addSessionCookie(String name, String value) {
+        addCookie(name, value, -1, "/");
+    }
+
+    public void deleteCookie(String name) {
+        addCookie(name, "", 0, "/");
+    }
+    
 }
