@@ -21,8 +21,9 @@ public class JsonParser {
         if (peek() != '{') {
             throw new RuntimeException("Expected '{' at position " + index);
         }
-        next();
+        next(); // consume '{'
         skipWhitespace();
+        
         while (peek() != '}') {
             skipWhitespace();
 
@@ -44,6 +45,7 @@ public class JsonParser {
             }
             skipWhitespace();
         }
+        next();
         return result;
     }
 
@@ -122,7 +124,7 @@ public class JsonParser {
                 sb.append(c);
             }
         }
-        next();
+        next(); 
         return sb.toString();
     }
 
@@ -141,12 +143,12 @@ public class JsonParser {
             skipWhitespace();
 
             if (peek() == ',') {
-                next();
+                next(); 
             }
             skipWhitespace();
         }
 
-        next();
+        next(); 
         return result;
     }
 

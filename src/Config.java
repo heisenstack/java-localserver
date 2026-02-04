@@ -49,6 +49,11 @@ public class Config {
     public static class Route {
         private String path;
         private List<String> allowedMethods;
+        private String defaultFile;
+
+        public Route() {
+            this.allowedMethods = new ArrayList<>();
+        }
 
         public String getPath() {
             return path;
@@ -67,8 +72,18 @@ public class Config {
         }
 
         public void addAllowedMethod(String method) {
+            if (this.allowedMethods == null) {
+                this.allowedMethods = new ArrayList<>();
+            }
             this.allowedMethods.add(method);
         }
-    }
 
+        public String getDefaultFile() {
+            return defaultFile;
+        }
+
+        public void setDefaultFile(String defaultFile) {
+            this.defaultFile = defaultFile;
+        }
+    }
 }
