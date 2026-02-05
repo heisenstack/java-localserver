@@ -444,17 +444,17 @@ private static HttpResponse loadErrorPage(int statusCode, String reasonPhrase, C
     return response;
 }
 
-// private static Session getOrCreateSession(HttpRequest request, HttpResponse response) {
-//     String sessionId = request.getCookie("SESSIONID");
-//     Session session = Session.getSession(sessionId);
+private static Session getOrCreateSession(HttpRequest request, HttpResponse response) {
+    String sessionId = request.getCookie("SESSIONID");
+    Session session = Session.getSession(sessionId);
     
-//     if (session == null) {
-//         session = Session.createSession();
-//         response.addSessionCookie("SESSIONID", session.getId());
-//     }
+    if (session == null) {
+        session = Session.createSession();
+        response.addSessionCookie("SESSIONID", session.getId());
+    }
     
-//     return session;
-// }
+    return session;
+}
 
 private static HttpResponse handleLogin(HttpRequest request, Config config) {
     String method = request.getMethod();
