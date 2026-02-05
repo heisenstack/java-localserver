@@ -514,69 +514,64 @@ private static HttpResponse handleLogin(HttpRequest request, Config config) {
 }
 
 
-// private static HttpResponse handleDashboard(HttpRequest request, Config config) {
-//     String sessionId = request.getCookie("SESSIONID");
-//     // Session session = Session.getSession(sessionId);
+private static HttpResponse handleDashboard(HttpRequest request, Config config) {
+    String sessionId = request.getCookie("SESSIONID");
+    Session session = Session.getSession(sessionId);
     
-//     // if (session == null || !session.hasAttribute("username")) {
-//     //     HttpResponse response = new HttpResponse(302, "Found");
-//     //     response.addHeader("Location", "/login");
-//     //     response.setBody("Redirecting to login...");
-//     //     return response;
-//     // }
+    if (session == null || !session.hasAttribute("username")) {
+        HttpResponse response = new HttpResponse(302, "Found");
+        response.addHeader("Location", "/login");
+        response.setBody("Redirecting to login...");
+        return response;
+    }
     
-//     try {
-//         String username = (String) session.getAttribute("username");
-//         long loginTime = (Long) session.getAttribute("loginTime");
-//         long sessionAge = (System.currentTimeMillis() - loginTime) / 1000;
+    try {
+        String username = (String) session.getAttribute("username");
+        long loginTime = (Long) session.getAttribute("loginTime");
+        long sessionAge = (System.currentTimeMillis() - loginTime) / 1000;
         
-//         // Build session data list
-//         StringBuilder sessionData = new StringBuilder();
-//         for (Map.Entry<String, Object> entry : session.getAttributes().entrySet()) {
-//             sessionData.append("<li><strong>")
-//                       .append(entry.getKey())
-//                       .append(":</strong> ")
-//                       .append(entry.getValue())
-//                       .append("<​/li>");
-//         }
+        StringBuilder sessionData = new StringBuilder();
+        for (Map.Entry<String, Object> entry : session.getAttributes().entrySet()) {
+            sessionData.append("<li><strong>")
+                      .append(entry.getKey())
+                      .append(":</strong> ")
+                      .append(entry.getValue())
+                      .append("<​/li>");
+        }
         
-//         // Load template
-//         File templateFile = new File("www/dashboard.html");
-//         String html = new String(Files.readAllBytes(templateFile.toPath()), StandardCharsets.UTF_8);
+        File templateFile = new File("www/dashboard.html");
+        String html = new String(Files.readAllBytes(templateFile.toPath()), StandardCharsets.UTF_8);
         
-//         // Replace placeholders
-//         html = html.replace("{{username}}", username);
-//         html = html.replace("{{sessionId}}", session.getId());
-//         html = html.replace("{{sessionAge}}", String.valueOf(sessionAge));
-//         html = html.replace("{{sessionData}}", sessionData.toString());
+        html = html.replace("{{username}}", username);
+        html = html.replace("{{sessionId}}", session.getId());
+        html = html.replace("{{sessionAge}}", String.valueOf(sessionAge));
+        html = html.replace("{{sessionData}}", sessionData.toString());
         
-//         HttpResponse response = new HttpResponse(200, "OK");
-//         response.addHeader("Content-Type", "text/html; charset=UTF-8");
-//         response.setBody(html.getBytes(StandardCharsets.UTF_8));
-//         return response;
+        HttpResponse response = new HttpResponse(200, "OK");
+        response.addHeader("Content-Type", "text/html; charset=UTF-8");
+        response.setBody(html.getBytes(StandardCharsets.UTF_8));
+        return response;
         
-//     } catch (Exception e) {
-//         e.printStackTrace();
-//         return error500(config);
-//     }
-// }
+    } catch (Exception e) {
+        e.printStackTrace();
+        return error500(config);
+    }
+}
 
-// /**
-//  * Handle logout
-//  */
-// private static HttpResponse handleLogout(HttpRequest request, Config config) {
-//     String sessionId = request.getCookie("SESSIONID");
+
+private static HttpResponse handleLogout(HttpRequest request, Config config) {
+    String sessionId = request.getCookie("SESSIONID");
     
-//     if (sessionId != null) {
-//         Session.destroySession(sessionId);
-//     }
+    if (sessionId != null) {
+        Session.destroySession(sessionId);
+    }
     
-//     HttpResponse response = new HttpResponse(302, "Found");
-//     response.deleteCookie("SESSIONID");
-//     response.addHeader("Location", "/");
-//     response.setBody("Logging out...");
+    HttpResponse response = new HttpResponse(302, "Found");
+    response.deleteCookie("SESSIONID");
+    response.addHeader("Location", "/");
+    response.setBody("Logging out...");
     
-//     System.out.println("[LOGOUT] User logged out");
-//     return response;
-// }
+    System.out.println("[LOGOUT] User logged out");
+    return response;
+}
 }
