@@ -92,7 +92,7 @@ public class Session {
     
 
     public static void cleanupExpiredSessions() {
-        long now = System.currentTimeMillis();
+        // long now = System.currentTimeMillis();
         sessions.entrySet().removeIf(entry -> {
             if (entry.getValue().isExpired()) {
                 System.out.println("[SESSION] Cleaned up expired: " + entry.getKey());
