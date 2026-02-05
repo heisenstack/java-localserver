@@ -1,306 +1,582 @@
 package src;
 
+import src.Config;
 import src.http.HttpRequest;
 import src.http.HttpResponse;
 import src.http.MultipartParser;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+// import src.http.Session;
 
 public class Router {
     
+
     public static HttpResponse route(HttpRequest request, Config config) {
+    try {
         String method = request.getMethod();
         String path = request.getPath();
         
         System.out.println("[REQUEST] " + method + " " + path);
         
+        // Handle special routes
+        if (path.equals("/login")) {
+            return handleLogin(request, config);
+        }
+        if (path.equals("/dashboard")) {
+            return handleDashboard(request, config);
+        }
+        if (path.equals("/logout")) {
+            return handleLogout(request, config);
+        }
+        
+        Config.Route route = findRoute(path, config);
+        
+        if (route == null) {
+            return error404(config);
+        }
+        
+        // Check if method is allowed
+        if (!route.getAllowedMethods().isEmpty() && 
+            !route.getAllowedMethods().contains(method)) {
+            return error405(config);
+        }
+        
+        // if (route.getRedirect() != null) {
+        //     return redirect(route.getRedirect());
+        // }
+        
+        // Handle based on method
+        switch (method) {
+            case "GET":
+                return handleGet(path, route, config);
+            case "POST":
+                return handlePost(path, route, request, config);
+            case "DELETE":
+                return handleDelete(path, route, config);
+            default:
+                return error405(config);
+        }
+        
+    } catch (Exception e) {
+        e.printStackTrace();
+        return error500(config);
+    }
+}
+    
+    /**
+     * Find the matching route for a given path
+     */
+    private static Config.Route findRoute(String requestPath, Config config) {
+        Config.Route bestMatch = null;
+        int longestMatch = 0;
+        
         for (Config.Route route : config.getRoutes()) {
-            if (matchesRoute(path, route.getPath())) {
-                if (!route.getAllowedMethods().contains(method)) {
-                    return createErrorResponse(405, "Method Not Allowed", config);
+            String routePath = route.getPath();
+            
+            // Exact match or prefix match
+            if (requestPath.equals(routePath) || requestPath.startsWith(routePath)) {
+                if (routePath.length() > longestMatch) {
+                    longestMatch = routePath.length();
+                    bestMatch = route;
                 }
-                
-                System.out.println("[MATCH] Route matched: " + route.getPath());
-                
-                // Handle different HTTP methods
-                if (method.equals("GET")) {
-                    return handleGet(request, route, config);
-                } else if (method.equals("POST")) {
-                    return handlePost(request, route, config);
-                } else if (method.equals("DELETE")) {
-                    return handleDelete(request, route, config);
-                }
-                
-                return createErrorResponse(405, "Method Not Allowed", config);
             }
         }
         
-        System.out.println("[404] No route matched for: " + path);
-        return createErrorResponse(404, "Not Found", config);
+        return bestMatch;
     }
     
-    private static HttpResponse handleGet(HttpRequest request, Config.Route route, Config config) {
-        return serveFile(request, route, config);
-    }
-    
-    private static HttpResponse handlePost(HttpRequest request, Config.Route route, Config config) {
-        String contentType = request.getHeaders().get("content-type");
-        
-        if (contentType != null && contentType.startsWith("multipart/form-data")) {
-            return handleFileUpload(request, route, config);
-        } else {
-            // Handle regular form data
-            String body = new String(request.getBody());
-            System.out.println("[POST] Body: " + body);
-            
-            HttpResponse response = new HttpResponse(200, "OK");
-            String responseBody = "POST received successfully\nBody: " + body;
-            response.setBody(responseBody);
-            response.addHeader("Content-Type", "text/plain");
-            response.addHeader("Server", "LocalServer/1.0");
-            
-            return response;
-        }
-    }
-    
-    private static HttpResponse handleFileUpload(HttpRequest request, Config.Route route, Config config) {
+    /**
+     * Handle GET requests - serve files
+     */
+    private static HttpResponse handleGet(String requestPath, Config.Route route, Config config) {
         try {
-            String contentType = request.getHeaders().get("content-type");
-            
-            // Extract boundary from content-type header
-            String boundary = null;
-            if (contentType != null) {
-                for (String part : contentType.split(";")) {
-                    part = part.trim();
-                    if (part.startsWith("boundary=")) {
-                        boundary = part.substring(9);
-                        break;
-                    }
-                }
+            // Get the root directory from route
+            String root = route.getRoot();
+            if (root == null) {
+                root = ".";
             }
             
-            if (boundary == null) {
-                return createErrorResponse(400, "Bad Request: Missing boundary", config);
+            // Remove route path prefix to get relative file path
+            String routePath = route.getPath();
+            String relativePath = requestPath;
+            if (requestPath.startsWith(routePath) && !routePath.equals("/")) {
+                relativePath = requestPath.substring(routePath.length());
             }
             
-            // Parse multipart data
-            List<MultipartParser.Part> parts = MultipartParser.parse(request.getBody(), boundary);
+            // Build full file path
+            Path filePath = Paths.get(root, relativePath).normalize();
+            File file = filePath.toFile();
             
-            // Create uploads directory if it doesn't exist
-            String rootDir = route.getRoot();
-            if (!rootDir.startsWith("src/")) {
-                rootDir = "src/" + rootDir;
-            }
-            
-            Path uploadsDir = Paths.get(rootDir + "/uploads");
-            if (!Files.exists(uploadsDir)) {
-                Files.createDirectories(uploadsDir);
-            }
-            
-            StringBuilder responseBody = new StringBuilder("Files uploaded successfully:\n");
-            
-            for (MultipartParser.Part part : parts) {
-                if (part.getFilename() != null && !part.getFilename().isEmpty()) {
-                    // Save file
-                    Path filePath = uploadsDir.resolve(part.getFilename());
-                    try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
-                        fos.write(part.getData());
-                    }
-                    responseBody.append("- ").append(part.getFilename()).append(" (")
-                               .append(part.getData().length).append(" bytes)\n");
-                    System.out.println("[UPLOAD] Saved: " + filePath);
-                }
-            }
-            
-            HttpResponse response = new HttpResponse(200, "OK");
-            response.setBody(responseBody.toString());
-            response.addHeader("Content-Type", "text/plain");
-            response.addHeader("Server", "LocalServer/1.0");
-            
-            return response;
-            
-        } catch (Exception e) {
-            System.err.println("[500] Upload error: " + e.getMessage());
-            e.printStackTrace();
-            return createErrorResponse(500, "Internal Server Error: " + e.getMessage(), config);
-        }
-    }
-    
-    private static HttpResponse handleDelete(HttpRequest request, Config.Route route, Config config) {
-        try {
-            String requestPath = request.getPath();
-            
-            if (!route.getPath().equals("/")) {
-                requestPath = requestPath.substring(route.getPath().length());
-            }
-            
-            String rootDir = route.getRoot();
-            if (!rootDir.startsWith("src/")) {
-                rootDir = "src/" + rootDir;
-            }
-            
-            Path filePath = Paths.get(rootDir + requestPath).normalize();
-            
-            // Security: prevent directory traversal
-            if (!filePath.startsWith(Paths.get(rootDir).normalize())) {
-                System.out.println("[403] Directory traversal attempt blocked");
-                return createErrorResponse(403, "Forbidden", config);
+            // Security check: prevent directory traversal
+            if (!filePath.startsWith(Paths.get(root).normalize())) {
+                return error403(config);
             }
             
             // Check if file exists
-            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
-                System.out.println("[404] File not found: " + filePath);
-                return createErrorResponse(404, "Not Found", config);
+            if (!file.exists()) {
+                return error404(config);
             }
             
-            // Delete file
-            Files.delete(filePath);
-            System.out.println("[DELETE] Deleted: " + filePath);
+            // If it's a directory
+            if (file.isDirectory()) {
+                return handleDirectory(file, route, config);
+            }
             
-            HttpResponse response = new HttpResponse(200, "OK");
-            response.setBody("File deleted: " + requestPath);
-            response.addHeader("Content-Type", "text/plain");
-            response.addHeader("Server", "LocalServer/1.0");
-            
-            return response;
+            // Serve the file
+            return serveFile(file);
             
         } catch (Exception e) {
-            System.err.println("[ERROR] Failed to delete file: " + e.getMessage());
-            return createErrorResponse(500, "Internal Server Error", config);
-        }
-    }
-    
-    private static HttpResponse serveFile(HttpRequest request, Config.Route route, Config config) {
-        try {
-            String requestPath = request.getPath();
-            
-            if (!route.getPath().equals("/")) {
-                requestPath = requestPath.substring(route.getPath().length());
-            }
-            
-            if (requestPath.isEmpty() || requestPath.equals("/")) {
-                if (route.getDefaultFile() != null) {
-                    requestPath = "/" + route.getDefaultFile();
-                } else {
-                    requestPath = "/index.html";
-                }
-            }
-            
-            String rootDir = route.getRoot();
-            if (!rootDir.startsWith("src/")) {
-                rootDir = "src/" + rootDir;
-            }
-            
-            Path filePath = Paths.get(rootDir + requestPath).normalize();
-            
-            System.out.println("[FILE] Attempting to serve: " + filePath);
-            
-            if (!filePath.startsWith(Paths.get(rootDir).normalize())) {
-                System.out.println("[403] Directory traversal attempt blocked");
-                return createErrorResponse(403, "Forbidden", config);
-            }
-            
-            if (!Files.exists(filePath)) {
-                System.out.println("[404] File not found: " + filePath);
-                return createErrorResponse(404, "Not Found", config);
-            }
-            
-            if (Files.isDirectory(filePath)) {
-                System.out.println("[403] Directory access denied");
-                return createErrorResponse(403, "Forbidden", config);
-            }
-            
-            byte[] content = Files.readAllBytes(filePath);
-            
-            String contentType = getContentType(filePath.toString());
-            
-            HttpResponse response = new HttpResponse(200, "OK");
-            response.setBody(content);
-            response.addHeader("Content-Type", contentType);
-            response.addHeader("Server", "LocalServer/1.0");
-            
-            System.out.println("[200] Served: " + filePath + " (" + content.length + " bytes)");
-            return response;
-            
-        } catch (Exception e) {
-            System.err.println("[ERROR] Failed to serve file: " + e.getMessage());
             e.printStackTrace();
-            return createErrorResponse(500, "Internal Server Error", config);
+            return error500(config);
         }
     }
     
-    private static HttpResponse createErrorResponse(int statusCode, String reason, Config config) {
-        HttpResponse response = new HttpResponse(statusCode, reason);
-        
-        String errorPagePath = config.getErrorPages().get(statusCode);
-        if (errorPagePath != null) {
-            try {
-                Path errorFile = Paths.get("src/" + errorPagePath);
-                if (Files.exists(errorFile)) {
-                    byte[] content = Files.readAllBytes(errorFile);
-                    response.setBody(content);
-                    response.addHeader("Content-Type", "text/html");
-                    return response;
+    /**
+     * Handle directory requests
+     */
+    private static HttpResponse handleDirectory(File dir, Config.Route route, Config config) {
+        try {
+            // Try to serve default file (index.html)
+            String defaultFile = route.getDefaultFile();
+            if (defaultFile != null) {
+                File indexFile = new File(dir, defaultFile);
+                if (indexFile.exists() && indexFile.isFile()) {
+                    return serveFile(indexFile);
                 }
-            } catch (Exception e) {
-                System.err.println("[WARN] Could not load error page: " + errorPagePath);
             }
+            
+            // If directory listing is enabled
+            if (route.isDirectoryListing()) {
+                return generateDirectoryListing(dir);
+            }
+            
+            // Otherwise, return 403 Forbidden
+            return error403(config);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return error500(config);
         }
+    }
+    
+
+    private static HttpResponse serveFile(File file) throws IOException {
+        byte[] content = Files.readAllBytes(file.toPath());
+        // String mimeType = MimeTypes.getMimeType(file.getName());
         
-        String html = "<!DOCTYPE html>\n" +
-                    "<html>\n" +
-                    "<head><title>" + statusCode + " " + reason + "</title></head>\n" +
-                    "<body>\n" +
-                    "<​h1>" + statusCode + " " + reason + "</h1>\n" +
-                    "<hr>\n" +
-                    "<p>LocalServer/1.0</p>\n" +
-                    "</body>\n" +
-                    "<​/html>";
+        HttpResponse response = new HttpResponse(200, "OK");
+        // response.addHeader("Content-Type", mimeType);
+        response.setBody(content);
         
-        response.setBody(html);
-        response.addHeader("Content-Type", "text/html");
         return response;
     }
     
-    private static String getContentType(String filePath) {
-        String lower = filePath.toLowerCase();
-        
-        // Text
-        if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html; charset=utf-8";
-        if (lower.endsWith(".css")) return "text/css; charset=utf-8";
-        if (lower.endsWith(".js")) return "application/javascript; charset=utf-8";
-        if (lower.endsWith(".json")) return "application/json; charset=utf-8";
-        if (lower.endsWith(".xml")) return "application/xml; charset=utf-8";
-        if (lower.endsWith(".txt")) return "text/plain; charset=utf-8";
-        
-        // Images
-        if (lower.endsWith(".png")) return "image/png";
-        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        if (lower.endsWith(".gif")) return "image/gif";
-        if (lower.endsWith(".svg")) return "image/svg+xml";
-        if (lower.endsWith(".ico")) return "image/x-icon";
-        if (lower.endsWith(".webp")) return "image/webp";
-        
-        // Fonts
-        if (lower.endsWith(".woff")) return "font/woff";
-        if (lower.endsWith(".woff2")) return "font/woff2";
-        if (lower.endsWith(".ttf")) return "font/ttf";
-        if (lower.endsWith(".otf")) return "font/otf";
-        
-        // Other
-        if (lower.endsWith(".pdf")) return "application/pdf";
-        if (lower.endsWith(".zip")) return "application/zip";
-        
-        return "application/octet-stream";
+
+private static HttpResponse generateDirectoryListing(File dir) {
+    StringBuilder html = new StringBuilder();
+    html.append("<​!DOCTYPE html>");
+    html.append("<​html>");
+    html.append("<head><title>Index of ").append(dir.getName()).append("</title></head>");
+    html.append("<​body>");
+    html.append("<h1>Index of /").append(dir.getName()).append("<​/h1>");
+    html.append("<​hr>");
+    html.append("<​ul>");
+    
+    File[] files = dir.listFiles();
+    if (files != null) {
+        for (File file : files) {
+            String name = file.getName();
+            if (file.isDirectory()) {
+                name += "/";
+            }
+            html.append("<li><a href=\"").append(name).append("\">")
+                .append(name).append("</a></li>");
+        }
     }
     
-    private static boolean matchesRoute(String requestPath, String routePath) {
-        if (routePath.equals("/")) {
-            return true;
+    html.append("<​/ul>");
+    html.append("<​hr>");
+    html.append("<​/body>");
+    html.append("<​/html>");
+    
+    return HttpResponse.ok(html.toString());
+}
+ private static HttpResponse handlePost(String path, Config.Route route, 
+                                      HttpRequest request, Config config) {
+    try {
+        System.out.println("[POST] Path: " + path);
+        
+        byte[] body = request.getBody();
+        if (body != null && body.length > config.getClientBodySizeLimit()) {
+            return error413(config);
         }
-        return requestPath.equals(routePath) || requestPath.startsWith(routePath + "/");
+        
+        List<MultipartParser.Part> parts = request.getMultipartParts();
+        List<String> uploadedFiles = new ArrayList<>();
+        
+        if (parts != null && !parts.isEmpty()) {
+            File uploadsDir = new File("uploads");
+            if (!uploadsDir.exists()) {
+                uploadsDir.mkdirs();
+            }
+            
+            for (MultipartParser.Part part : parts) {
+                if (part.isFile() && part.getData().length > 0) {
+                    String filename = sanitizeFilename(part.getFilename());
+                    File uploadFile = new File(uploadsDir, filename);
+                    
+                    try (FileOutputStream fos = new FileOutputStream(uploadFile)) {
+                        fos.write(part.getData());
+                    }
+                    
+                    uploadedFiles.add(filename);
+                    System.out.println("[UPLOAD] Saved: " + filename);
+                }
+            }
+        }
+        
+        Map<String, String> formData = request.getFormData();
+        
+        String html = "<html><head><title>Upload Success</title>" +
+                     "<link rel='stylesheet' href='/style.css'></head><body>" +
+                     "<h1>Upload Successful!</h1>" +
+                     "<p><strong>Path:</strong> " + path + "<​/p>";
+        
+        if (!uploadedFiles.isEmpty()) {
+            html += "<h2>Uploaded Files:</h2><ul>";
+            for (String f : uploadedFiles) {
+                html += "<li><a href='/uploads/" + f + "' target='_blank'>" + f + "</a></li>";
+            }
+            html += "<​/ul>";
+        }
+        
+        if (!formData.isEmpty()) {
+            html += "<h2>Form Data:</h2><ul>";
+            for (Map.Entry<String, String> e : formData.entrySet()) {
+                html += "<li><strong>" + e.getKey() + ":</strong> " + e.getValue() + "<​/li>";
+            }
+            html += "<​/ul>";
+        }
+        
+        html += "<hr><p><a href='/'>Back to Home</a></p></body></html>";
+        
+        HttpResponse response = new HttpResponse(200, "OK");
+        response.addHeader("Content-Type", "text/html; charset=UTF-8");
+        response.setBody(html.getBytes(StandardCharsets.UTF_8));
+        
+        return response;
+        
+    } catch (Exception e) {
+        e.printStackTrace();
+        return error500(config);
     }
+}
+
+
+/**
+ * Escape HTML special characters
+ */
+private static String escapeHtml(String text) {
+    if (text == null) return "";
+    return text.replace("&", "&amp;")
+               .replace("<​", "&lt;")
+               .replace(">", "&gt;")
+               .replace("\"", "&quot;")
+               .replace("'", "&#x27;");
+}
+    
+    /**
+     * Sanitize filename to prevent directory traversal
+     */
+    private static String sanitizeFilename(String filename) {
+        if (filename == null) return "unnamed";
+        
+        // Remove path separators
+        filename = filename.replaceAll("[/\\\\]", "_");
+        
+        // Remove any non-alphanumeric characters except dots, dashes, underscores
+        filename = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        
+        // Limit length
+        if (filename.length() > 255) {
+            filename = filename.substring(0, 255);
+        }
+        
+        return filename;
+    }
+    
+/**
+ * Handle DELETE requests - delete files
+ */
+private static HttpResponse handleDelete(String path, Config.Route route, Config config) {
+    try {
+        System.out.println("[DELETE] Path: " + path);
+        
+        // Get the root directory from route
+        String root = route.getRoot();
+        if (root == null) {
+            root = ".";
+        }
+        
+        // Remove route path prefix to get relative file path
+        String routePath = route.getPath();
+        String relativePath = path;
+        if (path.startsWith(routePath) && !routePath.equals("/")) {
+            relativePath = path.substring(routePath.length());
+        }
+        
+        // Build full file path
+        Path filePath = Paths.get(root, relativePath).normalize();
+        File file = filePath.toFile();
+        
+        // Security check: prevent directory traversal
+        if (!filePath.startsWith(Paths.get(root).normalize())) {
+            System.out.println("[DELETE] Forbidden: directory traversal attempt");
+            return error403(config);
+        }
+        
+        // Check if file exists
+        if (!file.exists()) {
+            System.out.println("[DELETE] Not found: " + file.getAbsolutePath());
+            return error404(config);
+        }
+        
+        // Don't allow deleting directories
+        if (file.isDirectory()) {
+            System.out.println("[DELETE] Forbidden: cannot delete directory");
+            return error403(config);
+        }
+        
+        // Delete the file
+        boolean deleted = file.delete();
+        
+        if (deleted) {
+            System.out.println("[DELETE] Successfully deleted: " + file.getName());
+            
+            String html = "<html><head><title>File Deleted</title>" +
+                         "<link rel='stylesheet' href='/style.css'></head><body>" +
+                         "<h1>File Deleted Successfully</h1>" +
+                         "<p><strong>File:</strong> " + file.getName() + "<​/p>" +
+                         "<p>The file has been permanently deleted.</p>" +
+                         "<hr><p><a href='/uploads/'>View Uploads</a> | " +
+                         "<a href='/'>Back to Home</a></p></body></html>";
+            
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.addHeader("Content-Type", "text/html; charset=UTF-8");
+            response.setBody(html.getBytes(StandardCharsets.UTF_8));
+            return response;
+        } else {
+            System.out.println("[DELETE] Failed to delete: " + file.getName());
+            return error500(config);
+        }
+        
+    } catch (Exception e) {
+        e.printStackTrace();
+        return error500(config);
+    }
+}
+
+    private static HttpResponse redirect(String location) {
+        HttpResponse response = new HttpResponse(301, "Moved Permanently");
+        response.addHeader("Location", location);
+        response.setBody("<h1>Redirecting...</h1>");
+        return response;
+    }
+    
+
+    private static HttpResponse error403(Config config) {
+        return loadErrorPage(403, "Forbidden", config);
+    }
+    
+    private static HttpResponse error404(Config config) {
+        return loadErrorPage(404, "Not Found", config);
+    }
+    
+    private static HttpResponse error405(Config config) {
+        return loadErrorPage(405, "Method Not Allowed", config);
+    }
+    
+    private static HttpResponse error500(Config config) {
+        return loadErrorPage(500, "Internal Server Error", config);
+    }
+    
+    private static HttpResponse error413(Config config) {
+        return loadErrorPage(413, "Payload Too Large", config);
+    }
+    
+private static HttpResponse loadErrorPage(int statusCode, String reasonPhrase, Config config) {
+    try {
+        String errorPagePath = config.getErrorPages().get(statusCode);
+        if (errorPagePath != null) {
+            File errorFile = new File(errorPagePath);
+            if (errorFile.exists()) {
+                byte[] content = Files.readAllBytes(errorFile.toPath());
+                HttpResponse response = new HttpResponse(statusCode, reasonPhrase);
+                response.addHeader("Content-Type", "text/html; charset=UTF-8");
+                response.setBody(content);
+                return response;
+            }
+        }
+    } catch (Exception e) {
+        // Fall through to default error page
+    }
+    
+    // Default error page
+    String html = "<​!DOCTYPE html>" +
+                 "<​html>" +
+                 "<head><title>" + statusCode + " " + reasonPhrase + "</title></head>" +
+                 "<​body>" +
+                 "<​h1>" + statusCode + " " + reasonPhrase + "<​/h1>" +
+                 "<​/body>" +
+                 "<​/html>";
+    
+    HttpResponse response = new HttpResponse(statusCode, reasonPhrase);
+    response.addHeader("Content-Type", "text/html; charset=UTF-8");
+    response.setBody(html);
+    return response;
+}
+
+// private static Session getOrCreateSession(HttpRequest request, HttpResponse response) {
+//     String sessionId = request.getCookie("SESSIONID");
+//     Session session = Session.getSession(sessionId);
+    
+//     if (session == null) {
+//         session = Session.createSession();
+//         response.addSessionCookie("SESSIONID", session.getId());
+//     }
+    
+//     return session;
+// }
+
+private static HttpResponse handleLogin(HttpRequest request, Config config) {
+    String method = request.getMethod();
+    
+    if (method.equals("GET")) {
+        try {
+            File loginFile = new File("www/login.html");
+            byte[] content = Files.readAllBytes(loginFile.toPath());
+            
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.addHeader("Content-Type", "text/html; charset=UTF-8");
+            response.setBody(content);
+            return response;
+        } catch (Exception e) {
+            return error500(config);
+        }
+        
+    } else if (method.equals("POST")) {
+        Map<String, String> formData = request.getFormData();
+        String username = formData.get("username");
+        String password = formData.get("password");
+        
+        if (username != null && password != null && 
+            username.equals("admin") && password.equals("password")) {
+            
+            HttpResponse response = new HttpResponse(302, "Found");
+            
+            // Session session = Session.createSession();
+            // session.setAttribute("username", username);
+            // session.setAttribute("loginTime", System.currentTimeMillis());
+            
+            // response.addSessionCookie("SESSIONID", session.getId());
+            response.addHeader("Location", "/dashboard");
+            response.setBody("Redirecting...");
+            
+            System.out.println("[LOGIN] User logged in: " + username);
+            return response;
+            
+        } else {
+            try {
+                File failFile = new File("www/login-fail.html");
+                if (failFile.exists()) {
+                    byte[] content = Files.readAllBytes(failFile.toPath());
+                    HttpResponse response = new HttpResponse(200, "OK");
+                    response.addHeader("Content-Type", "text/html; charset=UTF-8");
+                    response.setBody(content);
+                    return response;
+                }
+            } catch (Exception e) {
+            }
+            
+            return error500(config);
+        }
+    }
+    
+    return error405(config);
+}
+
+
+// private static HttpResponse handleDashboard(HttpRequest request, Config config) {
+//     String sessionId = request.getCookie("SESSIONID");
+//     // Session session = Session.getSession(sessionId);
+    
+//     // if (session == null || !session.hasAttribute("username")) {
+//     //     HttpResponse response = new HttpResponse(302, "Found");
+//     //     response.addHeader("Location", "/login");
+//     //     response.setBody("Redirecting to login...");
+//     //     return response;
+//     // }
+    
+//     try {
+//         String username = (String) session.getAttribute("username");
+//         long loginTime = (Long) session.getAttribute("loginTime");
+//         long sessionAge = (System.currentTimeMillis() - loginTime) / 1000;
+        
+//         // Build session data list
+//         StringBuilder sessionData = new StringBuilder();
+//         for (Map.Entry<String, Object> entry : session.getAttributes().entrySet()) {
+//             sessionData.append("<li><strong>")
+//                       .append(entry.getKey())
+//                       .append(":</strong> ")
+//                       .append(entry.getValue())
+//                       .append("<​/li>");
+//         }
+        
+//         // Load template
+//         File templateFile = new File("www/dashboard.html");
+//         String html = new String(Files.readAllBytes(templateFile.toPath()), StandardCharsets.UTF_8);
+        
+//         // Replace placeholders
+//         html = html.replace("{{username}}", username);
+//         html = html.replace("{{sessionId}}", session.getId());
+//         html = html.replace("{{sessionAge}}", String.valueOf(sessionAge));
+//         html = html.replace("{{sessionData}}", sessionData.toString());
+        
+//         HttpResponse response = new HttpResponse(200, "OK");
+//         response.addHeader("Content-Type", "text/html; charset=UTF-8");
+//         response.setBody(html.getBytes(StandardCharsets.UTF_8));
+//         return response;
+        
+//     } catch (Exception e) {
+//         e.printStackTrace();
+//         return error500(config);
+//     }
+// }
+
+// /**
+//  * Handle logout
+//  */
+// private static HttpResponse handleLogout(HttpRequest request, Config config) {
+//     String sessionId = request.getCookie("SESSIONID");
+    
+//     if (sessionId != null) {
+//         Session.destroySession(sessionId);
+//     }
+    
+//     HttpResponse response = new HttpResponse(302, "Found");
+//     response.deleteCookie("SESSIONID");
+//     response.addHeader("Location", "/");
+//     response.setBody("Logging out...");
+    
+//     System.out.println("[LOGOUT] User logged out");
+//     return response;
+// }
 }
