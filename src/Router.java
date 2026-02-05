@@ -1,6 +1,5 @@
 package src;
 
-import src.Config;
 import src.http.HttpRequest;
 import src.http.HttpResponse;
 import src.http.MultipartParser;
@@ -14,7 +13,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-// import src.http.Session;
+import src.http.Session;
 
 public class Router {
     
@@ -43,17 +42,15 @@ public class Router {
             return error404(config);
         }
         
-        // Check if method is allowed
         if (!route.getAllowedMethods().isEmpty() && 
             !route.getAllowedMethods().contains(method)) {
             return error405(config);
         }
         
-        // if (route.getRedirect() != null) {
-        //     return redirect(route.getRedirect());
-        // }
+        if (route.getRedirect() != null) {
+            return redirect(route.getRedirect());
+        }
         
-        // Handle based on method
         switch (method) {
             case "GET":
                 return handleGet(path, route, config);
@@ -71,9 +68,7 @@ public class Router {
     }
 }
     
-    /**
-     * Find the matching route for a given path
-     */
+
     private static Config.Route findRoute(String requestPath, Config config) {
         Config.Route bestMatch = null;
         int longestMatch = 0;
@@ -81,7 +76,6 @@ public class Router {
         for (Config.Route route : config.getRoutes()) {
             String routePath = route.getPath();
             
-            // Exact match or prefix match
             if (requestPath.equals(routePath) || requestPath.startsWith(routePath)) {
                 if (routePath.length() > longestMatch) {
                     longestMatch = routePath.length();
@@ -93,44 +87,35 @@ public class Router {
         return bestMatch;
     }
     
-    /**
-     * Handle GET requests - serve files
-     */
+
     private static HttpResponse handleGet(String requestPath, Config.Route route, Config config) {
         try {
-            // Get the root directory from route
             String root = route.getRoot();
             if (root == null) {
                 root = ".";
             }
             
-            // Remove route path prefix to get relative file path
             String routePath = route.getPath();
             String relativePath = requestPath;
             if (requestPath.startsWith(routePath) && !routePath.equals("/")) {
                 relativePath = requestPath.substring(routePath.length());
             }
             
-            // Build full file path
             Path filePath = Paths.get(root, relativePath).normalize();
             File file = filePath.toFile();
             
-            // Security check: prevent directory traversal
             if (!filePath.startsWith(Paths.get(root).normalize())) {
                 return error403(config);
             }
             
-            // Check if file exists
             if (!file.exists()) {
                 return error404(config);
             }
             
-            // If it's a directory
             if (file.isDirectory()) {
                 return handleDirectory(file, route, config);
             }
             
-            // Serve the file
             return serveFile(file);
             
         } catch (Exception e) {
@@ -139,12 +124,9 @@ public class Router {
         }
     }
     
-    /**
-     * Handle directory requests
-     */
+
     private static HttpResponse handleDirectory(File dir, Config.Route route, Config config) {
         try {
-            // Try to serve default file (index.html)
             String defaultFile = route.getDefaultFile();
             if (defaultFile != null) {
                 File indexFile = new File(dir, defaultFile);
@@ -153,12 +135,10 @@ public class Router {
                 }
             }
             
-            // If directory listing is enabled
             if (route.isDirectoryListing()) {
                 return generateDirectoryListing(dir);
             }
             
-            // Otherwise, return 403 Forbidden
             return error403(config);
             
         } catch (Exception e) {
@@ -170,10 +150,10 @@ public class Router {
 
     private static HttpResponse serveFile(File file) throws IOException {
         byte[] content = Files.readAllBytes(file.toPath());
-        // String mimeType = MimeTypes.getMimeType(file.getName());
+        String mimeType = MimeTypes.getMimeType(file.getName());
         
         HttpResponse response = new HttpResponse(200, "OK");
-        // response.addHeader("Content-Type", mimeType);
+        response.addHeader("Content-Type", mimeType);
         response.setBody(content);
         
         return response;
@@ -281,9 +261,6 @@ private static HttpResponse generateDirectoryListing(File dir) {
 }
 
 
-/**
- * Escape HTML special characters
- */
 private static String escapeHtml(String text) {
     if (text == null) return "";
     return text.replace("&", "&amp;")
@@ -293,19 +270,14 @@ private static String escapeHtml(String text) {
                .replace("'", "&#x27;");
 }
     
-    /**
-     * Sanitize filename to prevent directory traversal
-     */
+
     private static String sanitizeFilename(String filename) {
         if (filename == null) return "unnamed";
         
-        // Remove path separators
         filename = filename.replaceAll("[/\\\\]", "_");
         
-        // Remove any non-alphanumeric characters except dots, dashes, underscores
         filename = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
         
-        // Limit length
         if (filename.length() > 255) {
             filename = filename.substring(0, 255);
         }
@@ -313,49 +285,40 @@ private static String escapeHtml(String text) {
         return filename;
     }
     
-/**
- * Handle DELETE requests - delete files
- */
+
 private static HttpResponse handleDelete(String path, Config.Route route, Config config) {
     try {
         System.out.println("[DELETE] Path: " + path);
         
-        // Get the root directory from route
         String root = route.getRoot();
         if (root == null) {
             root = ".";
         }
         
-        // Remove route path prefix to get relative file path
         String routePath = route.getPath();
         String relativePath = path;
         if (path.startsWith(routePath) && !routePath.equals("/")) {
             relativePath = path.substring(routePath.length());
         }
         
-        // Build full file path
         Path filePath = Paths.get(root, relativePath).normalize();
         File file = filePath.toFile();
         
-        // Security check: prevent directory traversal
         if (!filePath.startsWith(Paths.get(root).normalize())) {
             System.out.println("[DELETE] Forbidden: directory traversal attempt");
             return error403(config);
         }
         
-        // Check if file exists
         if (!file.exists()) {
             System.out.println("[DELETE] Not found: " + file.getAbsolutePath());
             return error404(config);
         }
         
-        // Don't allow deleting directories
         if (file.isDirectory()) {
             System.out.println("[DELETE] Forbidden: cannot delete directory");
             return error403(config);
         }
         
-        // Delete the file
         boolean deleted = file.delete();
         
         if (deleted) {
@@ -426,10 +389,8 @@ private static HttpResponse loadErrorPage(int statusCode, String reasonPhrase, C
             }
         }
     } catch (Exception e) {
-        // Fall through to default error page
     }
     
-    // Default error page
     String html = "<​!DOCTYPE html>" +
                  "<​html>" +
                  "<head><title>" + statusCode + " " + reasonPhrase + "</title></head>" +

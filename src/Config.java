@@ -97,6 +97,7 @@ public class Config {
         private List<String> allowedMethods;
         private String defaultFile;
         private boolean directoryListing;
+        private String redirect;
 
         public Route() {
             this.allowedMethods = new ArrayList<>();
@@ -150,5 +151,14 @@ public class Config {
             this.directoryListing = directoryListing;
         }
 
+        public String getRedirect() {
+            return redirect;
+        }
+
+        public void setRedirect(String redirect) {
+            this.redirect = redirect;
+        }
+
     }
+
 }
