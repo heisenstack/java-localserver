@@ -482,11 +482,11 @@ private static HttpResponse handleLogin(HttpRequest request, Config config) {
             
             HttpResponse response = new HttpResponse(302, "Found");
             
-            // Session session = Session.createSession();
-            // session.setAttribute("username", username);
-            // session.setAttribute("loginTime", System.currentTimeMillis());
+            Session session = Session.createSession();
+            session.setAttribute("username", username);
+            session.setAttribute("loginTime", System.currentTimeMillis());
             
-            // response.addSessionCookie("SESSIONID", session.getId());
+            response.addSessionCookie("SESSIONID", session.getId());
             response.addHeader("Location", "/dashboard");
             response.setBody("Redirecting...");
             
