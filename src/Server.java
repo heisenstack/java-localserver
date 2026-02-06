@@ -12,6 +12,8 @@ public class Server {
     private final Selector selector;
     private final Config config;
     private final Map<SocketChannel, Connection> connections = new HashMap<>();
+    private long lastSessionCleanup = System.currentTimeMillis();
+    private static final long SESSION_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
     public Server(Config config) throws Exception {
         this.config = config;
@@ -35,6 +37,7 @@ public class Server {
                 selector.select(1000);
                 handleKeys();
                 cleanupTimeouts();
+                cleanupSessions(); 
             } catch (Exception e) {
                 System.err.println("[ERROR] Event loop");
             }
@@ -75,14 +78,16 @@ public class Server {
             if (conn.isRequestComplete()) {
                 HttpRequest req = RequestParser.parse(conn.getBuffer());
                 
-                // Check body size limit (413 Payload Too Large)
-                int bodySize = req.getBody().length;
-                if (bodySize > config.getClientBodySizeLimit()) {
-                    System.out.println("[413] Request body too large: " + bodySize + " bytes");
-                    HttpResponse res = createErrorResponse(413, "Payload Too Large");
-                    conn.setResponse(res);
-                    key.interestOps(SelectionKey.OP_WRITE);
-                    return;
+                byte[] body = req.getBody();
+                if (body != null) {
+                    int bodySize = body.length;
+                    if (bodySize > config.getClientBodySizeLimit()) {
+                        System.out.println("[413] Request body too large: " + bodySize + " bytes");
+                        HttpResponse res = createErrorResponse(413, "Payload Too Large");
+                        conn.setResponse(res);
+                        key.interestOps(SelectionKey.OP_WRITE);
+                        return;
+                    }
                 }
                 
                 HttpResponse res = Router.route(req, config);
@@ -123,6 +128,15 @@ public class Server {
     private void cleanupTimeouts() {
         long now = System.currentTimeMillis();
         connections.values().removeIf(c -> c.isTimedOut(now));
+    }
+    
+    private void cleanupSessions() {
+        long now = System.currentTimeMillis();
+        if (now - lastSessionCleanup > SESSION_CLEANUP_INTERVAL) {
+            Session.cleanupExpiredSessions();
+            lastSessionCleanup = now;
+            System.out.println("[CLEANUP] Session cleanup completed. Active sessions: " + Session.getSessionCount());
+        }
     }
     
     private HttpResponse createErrorResponse(int statusCode, String reason) {
