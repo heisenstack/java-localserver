@@ -20,6 +20,7 @@ public class Router {
     
 
     public static HttpResponse route(HttpRequest request, Config config) {
+        // System.out.println("[ROUTER] Routing request: " + request);
     try {
         String method = request.getMethod();
         String path = request.getPath();
@@ -419,6 +420,7 @@ private static HttpResponse loadErrorPage(int statusCode, String reasonPhrase, C
 // }
 
 private static HttpResponse handleLogin(HttpRequest request, Config config) {
+    // System.out.println("[LOGIN] Handling login request" + request);
     String method = request.getMethod();
     
     if (method.equals("GET")) {
