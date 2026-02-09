@@ -65,6 +65,11 @@ public class ConfigLoader {
         if (dirListing instanceof Boolean) {
             route.setDirectoryListing((Boolean) dirListing);
         }
+        
+        Object cgi = json.get("cgi");
+        if (cgi instanceof Boolean) {
+            route.setCgi((Boolean) cgi);
+        }
 
         return route;
     }
