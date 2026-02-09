@@ -118,4 +118,11 @@ public class HttpResponse {
         return res;
     }
 
+    public static HttpResponse forbidden(String message) {
+        HttpResponse res = new HttpResponse(403, "Forbidden");
+        res.setBody(message.getBytes());
+        res.addHeader("Content-Type", "text/plain");
+        return res;
+    }
+
 }

@@ -17,6 +17,10 @@ public class CGIHandler {
             File root = new File(config.getCgiRoot()).getCanonicalFile();
             File script = new File(root, relativePath).getCanonicalFile();
 
+            if (!script.getPath().startsWith(root.getPath())) {
+                return HttpResponse.forbidden("Forbidden");
+            }
+
             if (!script.exists() || !script.canExecute()) {
                 return HttpResponse.notFound("CGI script not found");
             }
