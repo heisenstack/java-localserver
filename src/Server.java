@@ -25,7 +25,11 @@ public class Server {
         for (int port : config.getPorts()) {
             ServerSocketChannel server = ServerSocketChannel.open();
             server.configureBlocking(false);
-            server.bind(new InetSocketAddress(config.getHost(), port));
+            String host = config.getHost();
+            if (host == null || host.isEmpty()) {
+            host = "0.0.0.0";
+        }
+            server.bind(new InetSocketAddress(host, port));
             server.register(selector, SelectionKey.OP_ACCEPT);
             System.out.println("Listening on " + port);
         }

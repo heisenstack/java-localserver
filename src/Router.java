@@ -20,13 +20,12 @@ public class Router {
     
 
     public static HttpResponse route(HttpRequest request, Config config) {
-        // System.out.println("[ROUTER] Routing request: " + request);
     try {
         String method = request.getMethod();
-        String path = request.getPath();
-        
+        String path = request.getPath().split("\\?")[0];
+
         System.out.println("[REQUEST] " + method + " " + path);
-        
+
         // Handle special routes
         if (path.equals("/login")) {
             return handleLogin(request, config);
@@ -37,39 +36,46 @@ public class Router {
         if (path.equals("/logout")) {
             return handleLogout(request, config);
         }
-        
+
+        // Find the matching route
         Config.Route route = findRoute(path, config);
-        
         if (route == null) {
             return error404(config);
         }
-        
-        if (!route.getAllowedMethods().isEmpty() && 
+
+        // **Important: CGI routes take priority**
+        if (route.isCgi()) {
+            return CGIHandler.handle(request, config);
+        }
+
+        // Check allowed methods for non-CGI routes
+        if (!route.getAllowedMethods().isEmpty() &&
             !route.getAllowedMethods().contains(method)) {
             return error405(config);
         }
-        
+
+        // Handle redirects
         if (route.getRedirect() != null) {
             return redirect(route.getRedirect());
         }
-        
+
+        // Handle request by method (non-CGI)
         switch (method) {
             case "GET":
                 return handleGet(path, route, config);
             case "POST":
-                return handlePost(path, route, request, config);
+                return handlePost(path, route, request, config); // Only non-CGI POST
             case "DELETE":
                 return handleDelete(path, route, config);
             default:
                 return error405(config);
         }
-        
+
     } catch (Exception e) {
         e.printStackTrace();
         return error500(config);
     }
 }
-    
 
     private static Config.Route findRoute(String requestPath, Config config) {
         Config.Route bestMatch = null;

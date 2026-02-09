@@ -3,16 +3,17 @@ package src;
 import src.http.HttpRequest;
 import src.http.HttpResponse;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 public class TestCGI {
     public static void main(String[] args) {
         Config config = new Config();
-        config.setCgiRoot("./cgi-bin");
+        config.setCgiRoot(new File("./cgi-bin").getAbsolutePath());
 
         HttpRequest getReq = new HttpRequest();
         getReq.setMethod("GET");
-        getReq.setPath("/hello.sh");
+        getReq.setPath("/hello.sh"); // request path
 
         HttpResponse getRes = CGIHandler.handle(getReq, config);
         System.out.println("===== GET Request =====");

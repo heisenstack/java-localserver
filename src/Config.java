@@ -98,6 +98,7 @@ public class Config {
         private String defaultFile;
         private boolean directoryListing;
         private String redirect;
+        private boolean cgi = false;
 
         public Route() {
             this.allowedMethods = new ArrayList<>();
@@ -158,7 +159,14 @@ public class Config {
         public void setRedirect(String redirect) {
             this.redirect = redirect;
         }
+        
+        public boolean isCgi() {
+            return cgi;
+        }
 
+        public void setCgi(boolean cgi) {
+            this.cgi = cgi;
+        }
     }
 
 }
