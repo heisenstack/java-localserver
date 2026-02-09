@@ -17,10 +17,6 @@ public class CGIHandler {
             File root = new File(config.getCgiRoot()).getCanonicalFile();
             File script = new File(root, relativePath).getCanonicalFile();
 
-            if (!script.getPath().startsWith(root.getPath())) {
-                return HttpResponse.forbidden("Forbidden");
-            }
-
             if (!script.exists() || !script.canExecute()) {
                 return HttpResponse.notFound("CGI script not found");
             }
@@ -37,6 +33,7 @@ public class CGIHandler {
                     config.getPorts().isEmpty() ? "8080" :
                             String.valueOf(config.getPorts().get(0)));
             env.put("SERVER_PROTOCOL", "HTTP/1.1");
+            env.put("QUERY_STRING", request.getQueryString() != null ? request.getQueryString() : "");
             env.put("CONTENT_LENGTH", request.getBody() != null ? String.valueOf(request.getBody().length) : "0");
             env.put("CONTENT_TYPE", request.getHeader("Content-Type") != null ? request.getHeader("Content-Type") : "");
             env.put("GATEWAY_INTERFACE", "CGI/1.1");

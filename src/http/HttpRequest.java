@@ -146,4 +146,12 @@ public class HttpRequest {
         }
     }
 
+    public String getQueryString() {
+    if (this.path == null) return "";
+
+    int idx = this.path.indexOf("?");
+    if (idx == -1) return "";
+
+    return this.path.substring(idx + 1);
+    }
 }
