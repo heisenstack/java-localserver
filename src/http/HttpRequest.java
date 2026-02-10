@@ -154,4 +154,18 @@ public class HttpRequest {
 
     return this.path.substring(idx + 1);
     }
+
+    @Override
+    public String toString() {
+        return "HttpRequest{" +
+                "method='" + method + '\n' +
+                "path='" + path + '\n' +
+                "version='" + version + '\n' +
+                "headers=" + headers + '\n' +
+                "cookies=" + cookies + '\n' +
+                "queryParams=" + queryParams + '\n' +
+                "formData=" + formData  + '\n' +
+                "multipartParts=" + multipartParts.size() +
+                '}';
+    }
 }
