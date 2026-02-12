@@ -82,9 +82,10 @@ public class CGIHandler {
             }
 
             // Read Body
-            int b;
-            while ((b = processOut.read()) != -1) {
-                bodyOut.write(b);
+            char[] buffer = new char[1024];
+            int len;
+            while ((len = reader.read(buffer)) != -1) {
+            bodyOut.write(new String(buffer, 0, len).getBytes());
             }
 
             BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
