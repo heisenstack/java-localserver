@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CGI Test Page</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background: #f4f6f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            min-height: 50px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🚀 CGI Dashboard</h1>
+
+<!--GET BUTTON-->
+<h3>GET CGI</h3>
+<button onclick="runGet()">Run GET CGI</button>
+
+<!--POST BUTTON-->
+<h3>POST CGI</h3>
+<button onclick="runPost()">Run POST CGI</button>
+
+<h3>Form CGI</h3>
+<form onsubmit="submitForm(event)">
+    <input name="name" placeholder="Name" required>
+    <input name="age" placeholder="Age" required>
+    <button type="submit">Send Form</button>
+</form>
+
+<h3>Result</h3>
+<div id="result">Waiting for request...</div>
+
+<script>
+
+function showResult(text) {
+    document.getElementById("result").innerHTML = text;
+}
+
+/* GET*/
+async function runGet() {
+    try {
+        showResult("Loading GET...");
+
+        const res = await fetch("/cgi-bin/hello.sh");
+        const text = await res.text();
+
+        showResult(text);
+
+    } catch (err) {
+        showResult("GET Error: " + err);
+    }
+}
+
+/*POST*/
+async function runPost() {
+    try {
+        showResult("Loading POST...");
+
+        const res = await fetch("/cgi-bin/hello.sh", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: "name=laidi&age=27"
+        });
+
+        const text = await res.text();
+        showResult(text);
+
+    } catch (err) {
+        showResult("POST Error: " + err);
+    }
+}
+
+/*FORM*/
+async function submitForm(e) {
+    e.preventDefault();
+
+    try {
+        showResult("Sending Form...");
+
+        const formData = new FormData(e.target);
+
+        const params = new URLSearchParams(formData);
+
+        const res = await fetch("/cgi-bin/hello.sh", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: params.toString()
+        });
+
+        const text = await res.text();
+        showResult(text);
+
+    } catch (err) {
+        showResult("Form Error: " + err);
+    }
+}
+
+</script>
+
+</body>
+</html>

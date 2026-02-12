@@ -13,3 +13,11 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
 else
     echo "<p>GET Request received.</p>"
 fi
+
+
+# echo "Content-Type: text/html"
+# echo ""
+
+# USERNAME="laidi"
+
+# cat www/dashboard.html | sed "s/{{username}}/$USERNAME/g"
