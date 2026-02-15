@@ -424,6 +424,17 @@ private static HttpResponse handleLogin(HttpRequest request, Config config) {
     String method = request.getMethod();
     
     if (method.equals("GET")) {
+        String sessionId = request.getCookie("SESSIONID");
+        Session session = Session.getSession(sessionId);
+        
+        if (session != null && session.hasAttribute("username")) {
+            HttpResponse response = new HttpResponse(302, "Found");
+            response.addHeader("Location", "/dashboard");
+            response.setBody("Already logged in");
+            System.out.println("[LOGIN] User already logged in, redirecting to dashboard");
+            return response;
+        }
+        
         try {
             File loginFile = new File("www/login.html");
             byte[] content = Files.readAllBytes(loginFile.toPath());
