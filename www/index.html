@@ -1,20 +1,158 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>LocalServer</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalServer - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 42px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 40px;
+        }
+        
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .nav-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+            background: white;
+        }
+        
+        .nav-card-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .nav-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .nav-card-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 25px;
+            }
+            
+            h1 {
+                font-size: 32px;
+            }
+            
+            .nav-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to LocalServer!</h1>
-    <p>Your server is now live!</p>
-    <ul>
-        <li><a href="form.html">Test POST Form</a></li>
-        <li><a href="/login">Login</a></li>
-        <li><a href="/manage.html">Manage Uploads</a></li>
-        <li><a href="test.txt">View test.txt</a></li>
-        <li><a href="style.css">View style.css</a></li>
-        <li><a href="upload.html">Test File Upload</a></li>
-        <li><a href="cgi.html">CGI Dashboard</a></li>
-    </ul>
+    <div class="container">
+        <h1>🚀 LocalServer</h1>
+        <p class="subtitle">Your development server is running!</p>
+        
+        <div class="nav-grid">
+            <a href="/login" class="nav-card">
+                <div class="nav-card-icon">🔐</div>
+                <div class="nav-card-title">Login</div>
+                <div class="nav-card-desc">Access your account dashboard</div>
+            </a>
+            
+            <a href="form.html" class="nav-card">
+                <div class="nav-card-icon">📝</div>
+                <div class="nav-card-title">Test POST Form</div>
+                <div class="nav-card-desc">Submit and test form data</div>
+            </a>
+            
+            <a href="upload.html" class="nav-card">
+                <div class="nav-card-icon">📤</div>
+                <div class="nav-card-title">File Upload</div>
+                <div class="nav-card-desc">Upload and test file handling</div>
+            </a>
+            
+            <a href="/manage.html" class="nav-card">
+                <div class="nav-card-icon">📁</div>
+                <div class="nav-card-title">Manage Files</div>
+                <div class="nav-card-desc">View and manage uploaded files</div>
+            </a>
+            
+            <a href="cgi.html" class="nav-card">
+                <div class="nav-card-icon">⚙️</div>
+                <div class="nav-card-title">CGI Dashboard</div>
+                <div class="nav-card-desc">Test CGI script execution</div>
+            </a>
+            
+            <a href="test.txt" class="nav-card">
+                <div class="nav-card-icon">📄</div>
+                <div class="nav-card-title">Static Files</div>
+                <div class="nav-card-desc">View test.txt and other files</div>
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p>LocalServer © 2025 | Built with Java NIO</p>
+        </div>
+    </div>
 </body>
 </html>
