@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>403 - Forbidden</title>
+    <title>404 - Page Not Found</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -34,7 +34,7 @@
         .error-code {
             font-size: 120px;
             font-weight: bold;
-            color: #f5576c;
+            color: #667eea;
             line-height: 1;
             margin-bottom: 20px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
@@ -77,14 +77,14 @@
         }
         
         .btn-primary {
-            background: #f5576c;
+            background: #667eea;
             color: white;
         }
         
         .btn-primary:hover {
-            background: #e04454;
+            background: #5568d3;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
         
         .btn-secondary {
@@ -122,21 +122,21 @@
 </head>
 <body>
     <div class="error-container">
-        <div class="error-icon">🚫</div>
-        <div class="error-code">403</div>
-        <h1 class="error-title">Access Forbidden</h1>
+        <div class="error-icon">🔍</div>
+        <div class="error-code">404</div>
+        <h1 class="error-title">Page Not Found</h1>
         <p class="error-message">
-            You don't have permission to access this resource. 
-            Please check your credentials or contact the administrator.
+            Oops! The page you're looking for doesn't exist. 
+            It might have been moved or deleted.
         </p>
         
         <div class="action-buttons">
             <a href="/" class="btn btn-primary">Go to Homepage</a>
-            <a href="/login" class="btn btn-secondary">Login</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
         </div>
         
         <div class="error-details">
-            <p>Error Code: 403 | Access Denied</p>
+            <p>If you believe this is an error, please contact the administrator.</p>
         </div>
     </div>
 </body>
