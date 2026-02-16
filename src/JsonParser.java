@@ -74,7 +74,7 @@ public class JsonParser {
         skipWhitespace();
         char c = peek();
 
-        if (c == '"') {
+        if (c == '"') { 
             return parseString();
         } else if (c == '{') {
             return parseObject();

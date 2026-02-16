@@ -73,56 +73,56 @@ public class Server {
     }
 
     private void read(SelectionKey key) {
-    SocketChannel client = (SocketChannel) key.channel();
-    Connection conn = connections.get(client);
-    
-    if (conn == null) {
+        SocketChannel client = (SocketChannel) key.channel();
+        Connection conn = connections.get(client);
+        
+        if (conn == null) {
         close(client);
         return;
     }
 
-    try {
-        conn.read();
+        try {
+            conn.read();
 
-        if (conn.isRequestComplete()) {
-            
-            if (conn.isContentLengthTooLarge()) {
+            if (conn.isRequestComplete()) {
+
+                            if (conn.isContentLengthTooLarge()) {
                 System.out.println("[413] Content-Length exceeds buffer limit");
                 HttpResponse res = createErrorResponse(413, "Payload Too Large");
                 conn.setResponse(res);
                 key.interestOps(SelectionKey.OP_WRITE);
                 return;  
             }
-            
-            HttpRequest req = RequestParser.parse(conn.getBuffer());
-            
-            byte[] body = req.getBody();
-            if (body != null) {
-                int bodySize = body.length;
-                if (bodySize > config.getClientBodySizeLimit()) {
-                    System.out.println("[413] Request body too large: " + bodySize + " bytes");
-                    HttpResponse res = createErrorResponse(413, "Payload Too Large");
-                    conn.setResponse(res);
-                    key.interestOps(SelectionKey.OP_WRITE);
-                    return;
+
+                HttpRequest req = RequestParser.parse(conn.getBuffer());
+                
+                byte[] body = req.getBody();
+                if (body != null) {
+                    int bodySize = body.length;
+                    if (bodySize > config.getClientBodySizeLimit()) {
+                        System.out.println("[413] Request body too large: " + bodySize + " bytes");
+                        HttpResponse res = createErrorResponse(413, "Payload Too Large");
+                        conn.setResponse(res);
+                        key.interestOps(SelectionKey.OP_WRITE);
+                        return;
+                    }
                 }
+                
+                HttpResponse res = Router.route(req, config);
+                conn.setResponse(res);
+                key.interestOps(SelectionKey.OP_WRITE);
             }
-            
-            HttpResponse res = Router.route(req, config);
-            conn.setResponse(res);
-            key.interestOps(SelectionKey.OP_WRITE);
-        }
-    } catch (Exception e) {
-        System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
-        try {
-            HttpResponse res = createErrorResponse(400, "Bad Request");
-            conn.setResponse(res);
-            key.interestOps(SelectionKey.OP_WRITE);
-        } catch (Exception ex) {
-            close(client);
+        } catch (Exception e) {
+            System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
+            try {
+                HttpResponse res = createErrorResponse(400, "Bad Request");
+                conn.setResponse(res);
+                key.interestOps(SelectionKey.OP_WRITE);
+            } catch (Exception ex) {
+                close(client);
+            }
         }
     }
-}
 
     private void write(SelectionKey key) {
         SocketChannel client = (SocketChannel) key.channel();
@@ -178,7 +178,7 @@ public class Server {
         }
     }
     
-private HttpResponse createErrorResponse(int statusCode, String reason) {
+    private HttpResponse createErrorResponse(int statusCode, String reason) {
     try {
         String errorPagePath = config.getErrorPages().get(statusCode);
         if (errorPagePath != null) {
