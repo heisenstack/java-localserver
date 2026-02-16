@@ -1,71 +1,232 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Manage Uploads</title>
-    <link rel="stylesheet" href="/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Files - LocalServer</title>
     <style>
-        .file-list {
-            list-style: none;
+        * {
+            margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-        .file-item {
-            padding: 10px;
-            margin: 5px 0;
-            background: #f5f5f5;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
         }
-        .delete-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 5px 15px;
-            border-radius: 3px;
-            cursor: pointer;
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
         }
-        .delete-btn:hover {
-            background: #c0392b;
+        
+        .header-icon {
+            text-align: center;
+            font-size: 60px;
+            margin-bottom: 20px;
         }
+        
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 35px;
+        }
+        
         #message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
             display: none;
+            font-size: 14px;
         }
+        
         .success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+        
         .error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+        
+        #fileList {
+            min-height: 200px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .file-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .file-item {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 12px 0;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .file-item:hover {
+            background: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .file-icon {
+            font-size: 28px;
+        }
+        
+        .file-name {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+        
+        .file-name:hover {
+            color: #5568d3;
+            text-decoration: underline;
+        }
+        
+        .delete-btn {
+            background: #f5576c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-btn:hover {
+            background: #e04454;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(245, 87, 108, 0.4);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-message {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .empty-hint {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link a:hover {
+            color: #5568d3;
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 25px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .delete-btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Manage Uploaded Files</h1>
-    
-    <div id="message"></div>
-    
-    <div id="fileList">
-        <p>Loading files...</p>
+    <div class="container">
+        <div class="header-icon">📁</div>
+        <h1>Manage Files</h1>
+        <p class="subtitle">View and manage your uploaded files</p>
+        
+        <div id="message"></div>
+        
+        <div id="fileList">
+            <div class="loading">📂 Loading files...</div>
+        </div>
+        
+        <div class="back-link">
+            <a href="/">← Back to Home</a>
+        </div>
     </div>
     
-    <hr>
-    <p><a href="/">Back to Home</a></p>
-    
     <script>
-        // Load file list
         async function loadFiles() {
             try {
                 const response = await fetch('/uploads/');
                 const html = await response.text();
                 
-                // Parse the directory listing
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const links = doc.querySelectorAll('a');
@@ -77,31 +238,41 @@
                 let hasFiles = false;
                 links.forEach(link => {
                     const filename = link.textContent.trim();
-                    // Skip parent directory and directories
                     if (filename && !filename.endsWith('/') && filename !== '..') {
                         hasFiles = true;
                         const li = document.createElement('li');
                         li.className = 'file-item';
                         li.innerHTML = `
-                            <span>
-                                <a href="/uploads/${filename}" target="_blank">${filename}</a>
-                            </span>
-                            <button class="delete-btn" onclick="deleteFile('${filename}')">Delete</button>
+                            <div class="file-info">
+                                <span class="file-icon">📄</span>
+                                <a href="/uploads/${filename}" target="_blank" class="file-name">${filename}</a>
+                            </div>
+                            <button class="delete-btn" onclick="deleteFile('${filename}')">🗑️ Delete</button>
                         `;
                         ul.appendChild(li);
                     }
                 });
                 
                 if (!hasFiles) {
-                    fileList.innerHTML = '<p>No files uploaded yet.</p>';
+                    fileList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <div class="empty-message">No files uploaded yet</div>
+                            <div class="empty-hint">Upload some files to see them here</div>
+                        </div>
+                    `;
                 }
             } catch (error) {
-                document.getElementById('fileList').innerHTML = 
-                    '<p style="color: red;">Error loading files.</p>';
+                document.getElementById('fileList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-message" style="color: #f5576c;">Error loading files</div>
+                        <div class="empty-hint">Please try again later</div>
+                    </div>
+                `;
             }
         }
         
-        // Delete file
         async function deleteFile(filename) {
             if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
                 return;
@@ -115,29 +286,27 @@
                 const messageDiv = document.getElementById('message');
                 
                 if (response.ok) {
-                    messageDiv.textContent = `File "${filename}" deleted successfully!`;
+                    messageDiv.textContent = `✅ File "${filename}" deleted successfully!`;
                     messageDiv.className = 'success';
                     messageDiv.style.display = 'block';
                     
-                    // Reload file list
                     setTimeout(() => {
                         loadFiles();
                         messageDiv.style.display = 'none';
                     }, 2000);
                 } else {
-                    messageDiv.textContent = `Failed to delete "${filename}".`;
+                    messageDiv.textContent = `❌ Failed to delete "${filename}".`;
                     messageDiv.className = 'error';
                     messageDiv.style.display = 'block';
                 }
             } catch (error) {
                 const messageDiv = document.getElementById('message');
-                messageDiv.textContent = 'Error: ' + error.message;
+                messageDiv.textContent = '❌ Error: ' + error.message;
                 messageDiv.className = 'error';
                 messageDiv.style.display = 'block';
             }
         }
         
-        // Load files on page load
         loadFiles();
     </script>
 </body>

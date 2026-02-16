@@ -2,144 +2,311 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CGI Test Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGI Dashboard - LocalServer</title>
     <style>
-        body {
-            font-family: Arial;
-            margin: 40px;
-            background: #f4f6f9;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ffa751 0%, #ffe259 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
+        }
+        
+        .header-icon {
+            text-align: center;
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
         h1 {
             color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-align: center;
         }
-
-        button {
-            padding: 10px 20px;
-            margin: 5px;
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 40px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
             border: none;
-            border-radius: 6px;
-            background: #3498db;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #2980b9;
-        }
-
-        form {
-            margin-top: 20px;
-        }
-
-        input {
-            padding: 8px;
-            margin: 5px;
-        }
-
-        #result {
-            margin-top: 30px;
-            padding: 15px;
-            background: white;
             border-radius: 8px;
-            border: 1px solid #ddd;
-            min-height: 50px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #ffa751;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #ff9638;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 167, 81, 0.4);
+        }
+        
+        .form-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            min-width: 150px;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #ffa751;
+            box-shadow: 0 0 0 3px rgba(255, 167, 81, 0.1);
+        }
+        
+        .result-section {
+            margin-top: 40px;
+        }
+        
+        .result-box {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #333;
             white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+        
+        .result-box.loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .result-box.success {
+            border-color: #43e97b;
+            background: #f0fff4;
+        }
+        
+        .result-box.error {
+            border-color: #f5576c;
+            background: #fff5f5;
+            color: #f5576c;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .back-link a {
+            color: #ffa751;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link a:hover {
+            color: #ff9638;
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 25px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header-icon">⚙️</div>
+        <h1>CGI Dashboard</h1>
+        <p class="subtitle">Test CGI script execution with GET and POST requests</p>
+        
+        <div class="section">
+            <h3 class="section-title">📥 GET Request</h3>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="runGet()">
+                    ▶️ Run GET CGI
+                </button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">📤 POST Request</h3>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="runPost()">
+                    ▶️ Run POST CGI
+                </button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">📋 Form Submission</h3>
+            <div class="form-container">
+                <form onsubmit="submitForm(event)">
+                    <div class="form-row">
+                        <input type="text" name="name" placeholder="Name" required>
+                        <input type="text" name="age" placeholder="Age" required>
+                        <button type="submit" class="btn btn-primary">📨 Send Form</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="result-section">
+            <h3 class="section-title">📊 Result</h3>
+            <div id="result" class="result-box loading">
+                ⏳ Waiting for request...
+            </div>
+        </div>
+        
+        <div class="back-link">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        function showResult(text, type = 'loading') {
+            const resultBox = document.getElementById("result");
+            resultBox.textContent = text;
+            resultBox.className = `result-box ${type}`;
+        }
 
-<h1>CGI Dashboard</h1>
+        async function runGet() {
+            try {
+                showResult("⏳ Loading GET request...", "loading");
+                
+                const res = await fetch("/cgi-bin/hello.sh");
+                const text = await res.text();
+                
+                showResult(text, "success");
+            } catch (err) {
+                showResult("❌ GET Error: " + err, "error");
+            }
+        }
 
-<!--GET BUTTON-->
-<h3>GET CGI</h3>
-<button onclick="runGet()">Run GET CGI</button>
+        async function runPost() {
+            try {
+                showResult("⏳ Loading POST request...", "loading");
+                
+                const res = await fetch("/cgi-bin/hello.sh", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: "name=laidi&age=27"
+                });
+                
+                const text = await res.text();
+                showResult(text, "success");
+            } catch (err) {
+                showResult("❌ POST Error: " + err, "error");
+            }
+        }
 
-<!--POST BUTTON-->
-<h3>POST CGI</h3>
-<button onclick="runPost()">Run POST CGI</button>
-
-<h3>Form CGI</h3>
-<form onsubmit="submitForm(event)">
-    <input name="name" placeholder="Name" required>
-    <input name="age" placeholder="Age" required>
-    <button type="submit">Send Form</button>
-</form>
-
-<h3>Result</h3>
-<div id="result">Waiting for request...</div>
-
-<script>
-
-function showResult(text) {
-    document.getElementById("result").innerHTML = text;
-}
-
-/* GET*/
-async function runGet() {
-    try {
-        showResult("Loading GET...");
-
-        const res = await fetch("/cgi-bin/hello.sh");
-        const text = await res.text();
-
-        showResult(text);
-
-    } catch (err) {
-        showResult("GET Error: " + err);
-    }
-}
-
-/*POST*/
-async function runPost() {
-    try {
-        showResult("Loading POST...");
-
-        const res = await fetch("/cgi-bin/hello.sh", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: "name=laidi&age=27"
-        });
-
-        const text = await res.text();
-        showResult(text);
-
-    } catch (err) {
-        showResult("POST Error: " + err);
-    }
-}
-
-/*FORM*/
-async function submitForm(e) {
-    e.preventDefault();
-
-    try {
-        showResult("Sending Form...");
-
-        const formData = new FormData(e.target);
-
-        const params = new URLSearchParams(formData);
-
-        const res = await fetch("/cgi-bin/hello.sh", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: params.toString()
-        });
-
-        const text = await res.text();
-        showResult(text);
-
-    } catch (err) {
-        showResult("Form Error: " + err);
-    }
-}
-
-</script>
-<p><a href="/">Home</a></p>
+        async function submitForm(e) {
+            e.preventDefault();
+            
+            try {
+                showResult("⏳ Sending form data...", "loading");
+                
+                const formData = new FormData(e.target);
+                const params = new URLSearchParams(formData);
+                
+                const res = await fetch("/cgi-bin/hello.sh", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: params.toString()
+                });
+                
+                const text = await res.text();
+                showResult(text, "success");
+            } catch (err) {
+                showResult("❌ Form Error: " + err, "error");
+            }
+        }
+    </script>
 </body>
 </html>
