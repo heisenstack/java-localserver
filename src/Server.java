@@ -75,6 +75,11 @@ public class Server {
     private void read(SelectionKey key) {
         SocketChannel client = (SocketChannel) key.channel();
         Connection conn = connections.get(client);
+        
+        if (conn == null) {
+        close(client);
+        return;
+    }
 
         try {
             conn.read();
@@ -113,7 +118,12 @@ public class Server {
     private void write(SelectionKey key) {
         SocketChannel client = (SocketChannel) key.channel();
         Connection conn = connections.get(client);
-
+        
+        if (conn == null) {
+        close(client);
+        return;
+    }
+    
         try {
             conn.write();
             if (conn.isWriteComplete()) close(client);
@@ -130,9 +140,25 @@ public class Server {
     }
 
     private void cleanupTimeouts() {
-        long now = System.currentTimeMillis();
-        connections.values().removeIf(c -> c.isTimedOut(now));
+    long now = System.currentTimeMillis();
+
+    Iterator<Map.Entry<SocketChannel, Connection>> it =
+            connections.entrySet().iterator();
+
+    while (it.hasNext()) {
+        Map.Entry<SocketChannel, Connection> entry = it.next();
+        Connection conn = entry.getValue();
+
+        if (conn.isTimedOut(now)) {
+            SocketChannel client = entry.getKey();
+            try {
+                client.close();
+            } catch (Exception ignored) {}
+
+            it.remove();
+        }
     }
+}
     
     private void cleanupSessions() {
         long now = System.currentTimeMillis();

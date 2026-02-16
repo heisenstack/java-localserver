@@ -1,37 +1,72 @@
 {
-  "host": "127.0.0.1",
-  "ports": [8080, 8081],
-
-  "client_max_body_size": 10485760,
-
-  "error_pages": {
-    "403": "www/error_pages/403.html",
-    "404": "www/error_pages/404.html",
-    "405": "www/error_pages/405.html",
-    "413": "www/error_pages/413.html",
-    "500": "www/error_pages/500.html"
-  },
-
-  "routes": [
+  "servers": [
     {
-      "path": "/uploads",
-      "root": "uploads",
-      "methods": ["GET", "DELETE"],
-      "directory_listing": true,
-      "index": "index.html"
+      "host": "127.0.0.1",
+      "ports": [8080, 8081],
+      "client_max_body_size": 10485760,
+      "error_pages": {
+        "403": "www/error_pages/403.html",
+        "404": "www/error_pages/404.html",
+        "405": "www/error_pages/405.html",
+        "413": "www/error_pages/413.html",
+        "500": "www/error_pages/500.html"
+      },
+      "routes": [
+        {
+          "path": "/uploads",
+          "root": "uploads",
+          "methods": ["GET", "DELETE"],
+          "directory_listing": true,
+          "index": "index.html"
+        },
+        {
+          "path": "/",
+          "root": "www",
+          "methods": ["GET", "POST"],
+          "directory_listing": false,
+          "index": "index.html"
+        },
+        {
+          "path": "/cgi-bin",
+          "root": "cgi-bin",
+          "methods": ["GET", "POST"],
+          "cgi": true
+        }
+      ]
     },
     {
-      "path": "/",
-      "root": "www",
-      "methods": ["GET", "POST"],
-      "directory_listing": false,
-      "index": "index.html"
-    },
-    {
-      "path": "/cgi-bin",
-      "root": "cgi-bin",
-      "methods": ["GET", "POST"],
-      "cgi": true
+      "host": "0.0.0.0",
+      "ports": [9090],
+      "client_max_body_size": 10485760,
+      "error_pages": {
+        "403": "www/error_pages/403.html",
+        "404": "www/error_pages/404.html",
+        "405": "www/error_pages/405.html",
+        "413": "www/error_pages/413.html",
+        "500": "www/error_pages/500.html"
+      },
+      "routes": [
+        {
+          "path": "/uploads",
+          "root": "uploads",
+          "methods": ["GET", "DELETE"],
+          "directory_listing": true,
+          "index": "index.html"
+        },
+        {
+          "path": "/",
+          "root": "www",
+          "methods": ["GET", "POST"],
+          "directory_listing": false,
+          "index": "index.html"
+        },
+        {
+          "path": "/cgi-bin",
+          "root": "cgi-bin",
+          "methods": ["GET", "POST"],
+          "cgi": true
+        }
+      ]
     }
   ]
 }
