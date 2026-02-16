@@ -1,64 +1,200 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>File Upload Test</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload - LocalServer</title>
     <style>
-        form {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
+        }
+        
+        .upload-icon {
+            text-align: center;
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 35px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
         }
         
         label {
             display: block;
-            margin-top: 15px;
-            font-weight: bold;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
         }
         
-        input, textarea {
+        input[type="text"],
+        textarea,
+        input[type="file"] {
             width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.3s ease;
         }
         
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #28a745;
+        input[type="file"] {
+            padding: 10px;
+            cursor: pointer;
+        }
+        
+        input[type="file"]::file-selector-button {
+            padding: 8px 16px;
+            background: #43e97b;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            margin-right: 10px;
+            transition: all 0.3s ease;
         }
         
-        button:hover {
-            background: #218838;
+        input[type="file"]::file-selector-button:hover {
+            background: #2ed768;
+        }
+        
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #43e97b;
+            box-shadow: 0 0 0 3px rgba(67, 233, 123, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #43e97b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: #2ed768;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 233, 123, 0.4);
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #43e97b;
+            padding: 15px;
+            margin: 25px 0;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .back-link a {
+            color: #43e97b;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link a:hover {
+            color: #2ed768;
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 25px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>File Upload Test</h1>
-    
-    <form action="/upload" method="POST" enctype="multipart/form-data">
-        <label for="name">Your Name:</label>
-        <input type="text" id="name" name="name" required>
+    <div class="container">
+        <div class="upload-icon">📤</div>
+        <h1>File Upload Test</h1>
+        <p class="subtitle">Upload and test file handling</p>
         
-        <label for="description">Description:</label>
-        <textarea id="description" name="description" rows="3"></textarea>
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="name">Your Name</label>
+                <input type="text" id="name" name="name" placeholder="Enter your name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description (Optional)</label>
+                <textarea id="description" name="description" placeholder="Add a description for this file..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="file">Choose File</label>
+                <input type="file" id="file" name="file" required>
+            </div>
+            
+            <button type="submit" class="btn">Upload File</button>
+        </form>
         
-        <label for="file">Choose File:</label>
-        <input type="file" id="file" name="file" required>
+        <div class="info-box">
+            <strong>💡 Tip:</strong> Maximum file size may be limited by server configuration. Check your server settings for upload limits.
+        </div>
         
-        <button type="submit">Upload File</button>
-    </form>
-    
-    <hr>
-    <a href="/">Back to Home</a>
+        <div class="back-link">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
 </body>
 </html>
