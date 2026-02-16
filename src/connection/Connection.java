@@ -18,7 +18,7 @@ public class Connection {
     private boolean requestComplete = false;
     private boolean writeComplete = false;
     
-    private int expectedContentLength = -1;
+    private long expectedContentLength = -1;
     private int headerEndPosition = -1;
     
     public Connection(SocketChannel channel) {
@@ -62,63 +62,77 @@ public class Connection {
     }
     
     private void checkRequestComplete() {
-        int currentPos = readBuffer.position();
-        readBuffer.flip();
-        byte[] data = new byte[readBuffer.remaining()];
-        readBuffer.get(data);
-        readBuffer.clear();
-        readBuffer.position(currentPos);
-        
-        String dataStr = new String(data);
-        
-        if (headerEndPosition == -1) {
-            int headerEnd = dataStr.indexOf("\r\n\r\n");
-            if (headerEnd == -1) {
-                return;
-            }
-            
-            headerEndPosition = headerEnd + 4;
-            String headers = dataStr.substring(0, headerEnd);
-            expectedContentLength = extractContentLength(headers);
-            
-            System.out.println("[DEBUG] Headers complete. Content-Length: " + expectedContentLength);
+    int currentPos = readBuffer.position();
+    readBuffer.flip();
+    byte[] data = new byte[readBuffer.remaining()];
+    readBuffer.get(data);
+    readBuffer.clear();
+    readBuffer.position(currentPos);
+    
+    String dataStr = new String(data);
+    
+    if (headerEndPosition == -1) {
+        int headerEnd = dataStr.indexOf("\r\n\r\n");
+        if (headerEnd == -1) {
+            return;
         }
         
-        int currentBodyLength = data.length - headerEndPosition;
+        headerEndPosition = headerEnd + 4;
+        String headers = dataStr.substring(0, headerEnd);
+        expectedContentLength = extractContentLength(headers);
         
-        if (expectedContentLength == 0) {
-            requestComplete = true;
-            System.out.println("[DEBUG] Request complete (no body)");
-        } else if (expectedContentLength > 0) {
-            if (currentBodyLength >= expectedContentLength) {
-                requestComplete = true;
-                System.out.println("[DEBUG] Request complete. Body: " + currentBodyLength + "/" + expectedContentLength + " bytes");
-            } else {
-                System.out.println("[DEBUG] Waiting for body: " + currentBodyLength + "/" + expectedContentLength + " bytes");
-            }
-        } else {
-            requestComplete = true;
-            System.out.println("[DEBUG] Request complete (no Content-Length header)");
-        }
+        System.out.println("[DEBUG] Headers complete. Content-Length: " + expectedContentLength);
     }
     
-    private int extractContentLength(String headers) {
-        String[] lines = headers.split("\r\n");
-        for (String line : lines) {
-            if (line.toLowerCase().startsWith("content-length:")) {
-                String value = line.substring("content-length:".length()).trim();
-                try {
-                    int length = Integer.parseInt(value);
-                    System.out.println("[DEBUG] Found Content-Length: " + length);
-                    return length;
-                } catch (NumberFormatException e) {
-                    System.err.println("[ERROR] Invalid Content-Length: " + value);
+    long currentBodyLength = data.length - headerEndPosition;  
+    
+    if (expectedContentLength == 0) {
+        requestComplete = true;
+        System.out.println("[DEBUG] Request complete (no body)");
+    } else if (expectedContentLength > 0) {
+        
+        if (expectedContentLength > MAX_BUFFER_SIZE) {
+            System.err.println("[ERROR] Content-Length " + expectedContentLength + 
+                              " exceeds maximum buffer size " + MAX_BUFFER_SIZE);
+            requestComplete = true; 
+            return;
+        }
+        
+        if (currentBodyLength >= expectedContentLength) {
+            requestComplete = true;
+            System.out.println("[DEBUG] Request complete. Body: " + currentBodyLength + "/" + expectedContentLength + " bytes");
+        } else {
+            System.out.println("[DEBUG] Waiting for body: " + currentBodyLength + "/" + expectedContentLength + " bytes");
+        }
+    } else {
+        requestComplete = true;
+        System.out.println("[DEBUG] Request complete (no Content-Length header)");
+    }
+}
+    
+private long extractContentLength(String headers) {  
+    String[] lines = headers.split("\r\n");
+    for (String line : lines) {
+        if (line.toLowerCase().startsWith("content-length:")) {
+            String value = line.substring("content-length:".length()).trim();
+            try {
+                long length = Long.parseLong(value);
+                System.out.println("[DEBUG] Found Content-Length: " + length);
+                
+                if (length < 0) {
+                    System.err.println("[ERROR] Invalid Content-Length (negative): " + length);
                     return -1;
                 }
+                
+                return length;  
+            } catch (NumberFormatException e) {
+                System.err.println("[ERROR] Invalid Content-Length: " + value);
+                return -1;
             }
         }
-        return 0; 
     }
+    return 0; 
+}
     
     public ByteBuffer getBuffer() {
         int currentPos = readBuffer.position();
@@ -174,4 +188,7 @@ public class Connection {
     public SocketChannel getChannel() {
         return channel;
     }
+    public boolean isContentLengthTooLarge() {
+    return expectedContentLength > MAX_BUFFER_SIZE;
+}
 }

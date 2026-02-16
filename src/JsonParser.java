@@ -22,7 +22,7 @@ public class JsonParser {
         if (peek() != '{') {
             throw new RuntimeException("Expected '{' at position " + index);
         }
-        next(); // consume '{'
+        next();
         skipWhitespace();
 
         while (peek() != '}') {

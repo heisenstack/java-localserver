@@ -73,47 +73,56 @@ public class Server {
     }
 
     private void read(SelectionKey key) {
-        SocketChannel client = (SocketChannel) key.channel();
-        Connection conn = connections.get(client);
-        
-        if (conn == null) {
+    SocketChannel client = (SocketChannel) key.channel();
+    Connection conn = connections.get(client);
+    
+    if (conn == null) {
         close(client);
         return;
     }
 
-        try {
-            conn.read();
+    try {
+        conn.read();
 
-            if (conn.isRequestComplete()) {
-                HttpRequest req = RequestParser.parse(conn.getBuffer());
-                
-                byte[] body = req.getBody();
-                if (body != null) {
-                    int bodySize = body.length;
-                    if (bodySize > config.getClientBodySizeLimit()) {
-                        System.out.println("[413] Request body too large: " + bodySize + " bytes");
-                        HttpResponse res = createErrorResponse(413, "Payload Too Large");
-                        conn.setResponse(res);
-                        key.interestOps(SelectionKey.OP_WRITE);
-                        return;
-                    }
+        if (conn.isRequestComplete()) {
+            
+            if (conn.isContentLengthTooLarge()) {
+                System.out.println("[413] Content-Length exceeds buffer limit");
+                HttpResponse res = createErrorResponse(413, "Payload Too Large");
+                conn.setResponse(res);
+                key.interestOps(SelectionKey.OP_WRITE);
+                return;  
+            }
+            
+            HttpRequest req = RequestParser.parse(conn.getBuffer());
+            
+            byte[] body = req.getBody();
+            if (body != null) {
+                int bodySize = body.length;
+                if (bodySize > config.getClientBodySizeLimit()) {
+                    System.out.println("[413] Request body too large: " + bodySize + " bytes");
+                    HttpResponse res = createErrorResponse(413, "Payload Too Large");
+                    conn.setResponse(res);
+                    key.interestOps(SelectionKey.OP_WRITE);
+                    return;
                 }
-                
-                HttpResponse res = Router.route(req, config);
-                conn.setResponse(res);
-                key.interestOps(SelectionKey.OP_WRITE);
             }
-        } catch (Exception e) {
-            System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
-            try {
-                HttpResponse res = createErrorResponse(400, "Bad Request");
-                conn.setResponse(res);
-                key.interestOps(SelectionKey.OP_WRITE);
-            } catch (Exception ex) {
-                close(client);
-            }
+            
+            HttpResponse res = Router.route(req, config);
+            conn.setResponse(res);
+            key.interestOps(SelectionKey.OP_WRITE);
+        }
+    } catch (Exception e) {
+        System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
+        try {
+            HttpResponse res = createErrorResponse(400, "Bad Request");
+            conn.setResponse(res);
+            key.interestOps(SelectionKey.OP_WRITE);
+        } catch (Exception ex) {
+            close(client);
         }
     }
+}
 
     private void write(SelectionKey key) {
         SocketChannel client = (SocketChannel) key.channel();
@@ -169,10 +178,40 @@ public class Server {
         }
     }
     
-    private HttpResponse createErrorResponse(int statusCode, String reason) {
-        HttpResponse response = new HttpResponse(statusCode, reason);
-        response.setBody(reason);
-        response.addHeader("Content-Type", "text/plain");
-        return response;
+private HttpResponse createErrorResponse(int statusCode, String reason) {
+    try {
+        String errorPagePath = config.getErrorPages().get(statusCode);
+        if (errorPagePath != null) {
+            java.io.File errorFile = new java.io.File(errorPagePath);
+            if (errorFile.exists()) {
+                byte[] content = java.nio.file.Files.readAllBytes(errorFile.toPath());
+                HttpResponse response = new HttpResponse(statusCode, reason);
+                response.addHeader("Content-Type", "text/html; charset=UTF-8");
+                response.setBody(content);
+                System.out.println("[DEBUG] Loaded custom error page: " + errorPagePath);
+                return response;
+            } else {
+                System.err.println("[ERROR] Error page file not found: " + errorPagePath);
+            }
+        } else {
+            System.err.println("[ERROR] No error page configured for status: " + statusCode);
+        }
+    } catch (Exception e) {
+        System.err.println("[ERROR] Failed to load error page: " + e.getMessage());
+        e.printStackTrace();
     }
+    
+    String html = "<!DOCTYPE html>" +
+                 "<html>" +
+                 "<head><title>" + statusCode + " " + reason + "</title></head>" +
+                 "<body>" +
+                 "<h1>" + statusCode + " " + reason + "</h1>" +
+                 "</body>" +
+                 "</html>";
+    
+    HttpResponse response = new HttpResponse(statusCode, reason);
+    response.addHeader("Content-Type", "text/html; charset=UTF-8");
+    response.setBody(html);
+    return response;
+}
 }
