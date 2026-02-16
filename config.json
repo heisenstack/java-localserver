@@ -52,19 +52,6 @@
           "methods": ["GET", "DELETE"],
           "directory_listing": true,
           "index": "index.html"
-        },
-        {
-          "path": "/",
-          "root": "www",
-          "methods": ["GET", "POST"],
-          "directory_listing": false,
-          "index": "index.html"
-        },
-        {
-          "path": "/cgi-bin",
-          "root": "cgi-bin",
-          "methods": ["GET", "POST"],
-          "cgi": true
         }
       ]
     }
