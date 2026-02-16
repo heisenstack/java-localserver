@@ -35,7 +35,7 @@
       ]
     },
     {
-      "host": "0.0.0.0",
+      "host": "127.0.0.2",
       "ports": [9090],
       "client_max_body_size": 10485760,
       "error_pages": {
