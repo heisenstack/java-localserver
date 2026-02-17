@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Successful - LocalServer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .success-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounceIn 0.6s ease-out;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+        
+        .success-message {
+            color: #43e97b;
+            font-size: 18px;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        
+        .info-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            color: #333;
+            font-size: 15px;
+            word-wrap: break-word;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin: 25px 0 15px;
+            font-weight: 600;
+            text-align: left;
+        }
+        
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .file-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .file-item:hover {
+            background: white;
+            border-color: #43e97b;
+            transform: translateX(5px);
+        }
+        
+        .file-icon {
+            font-size: 24px;
+        }
+        
+        .file-link {
+            color: #43e97b;
+            text-decoration: none;
+            font-weight: 500;
+            flex: 1;
+            text-align: left;
+        }
+        
+        .file-link:hover {
+            color: #2ed768;
+            text-decoration: underline;
+        }
+        
+        .data-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .data-item {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #43e97b;
+        }
+        
+        .data-key {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .data-value {
+            color: #666;
+            word-wrap: break-word;
+            text-align: right;
+            max-width: 60%;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #43e97b;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2ed768;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 233, 123, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .empty-state {
+            color: #999;
+            font-style: italic;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        @media (max-width: 600px) {
+            .success-container {
+                padding: 40px 25px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .data-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .data-value {
+                max-width: 100%;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✅</div>
+        <h1>Upload Successful!</h1>
+        <p class="success-message">Your file has been uploaded successfully</p>
+        
+        <div class="info-section">
+            <div class="info-label">Upload Path</div>
+            <div class="info-value">{{uploadPath}}</div>
+        </div>
+        
+        {{filesSection}}
+        
+        {{formDataSection}}
+        
+        <div class="action-buttons">
+            <a href="/" class="btn btn-primary">Go Home</a>
+            <a href="/upload.html" class="btn btn-secondary">Upload Another</a>
+            <a href="/manage.html" class="btn btn-secondary">Manage Files</a>
+        </div>
+    </div>
+</body>
+</html>
