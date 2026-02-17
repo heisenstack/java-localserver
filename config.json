@@ -3,7 +3,7 @@
     {
       "host": "127.0.0.1",
       "ports": [8080, 8081],
-      "client_max_body_size": 30485760,
+      "client_max_body_size": 10485760,
       "error_pages": {
         "403": "error_pages/403.html",
         "404": "error_pages/404.html",
@@ -35,9 +35,9 @@
       ]
     },
     {
-      "host": "127.0.0.2",
+      "host": "0.0.0.0",
       "ports": [9090],
-      "client_max_body_size": 30485760,
+      "client_max_body_size": 10485760,
       "error_pages": {
         "403": "error_pages/403.html",
         "404": "error_pages/404.html",
