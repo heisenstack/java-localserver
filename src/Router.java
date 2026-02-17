@@ -356,27 +356,10 @@ private static HttpResponse handleDelete(String path, Config.Route route, Config
         if (deleted) {
             System.out.println("[DELETE] Successfully deleted: " + file.getName());
             
-            // Load and populate the delete success template
-            try {
-                File templateFile = new File("www/delete-success.html");
-                String html = new String(Files.readAllBytes(templateFile.toPath()), StandardCharsets.UTF_8);
-                
-                html = html.replace("{{filename}}", file.getName());
-                
-                HttpResponse response = new HttpResponse(200, "OK");
-                response.addHeader("Content-Type", "text/html; charset=UTF-8");
-                response.setBody(html.getBytes(StandardCharsets.UTF_8));
-                return response;
-                
-            } catch (Exception e) {
-                System.err.println("[ERROR] Failed to load delete-success template: " + e.getMessage());
-                // Fallback to simple response
-                String fallbackHtml = "<html><body><h1>File Deleted</h1><p>File: " + file.getName() + "</p></body></html>";
-                HttpResponse response = new HttpResponse(200, "OK");
-                response.addHeader("Content-Type", "text/html; charset=UTF-8");
-                response.setBody(fallbackHtml.getBytes(StandardCharsets.UTF_8));
-                return response;
-            }
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.addHeader("Content-Type", "text/plain; charset=UTF-8");
+            response.setBody("File deleted successfully");
+            return response;
         } else {
             System.out.println("[DELETE] Failed to delete: " + file.getName());
             return error500(config);
