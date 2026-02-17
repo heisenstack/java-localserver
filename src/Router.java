@@ -15,8 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import src.http.Session;
-import java.util.UUID;
-
 
 public class Router {
     
@@ -41,11 +39,6 @@ public class Router {
         Config.Route route = findRoute(path, config);
         if (route == null) {
             return error404(config);
-        }
-        
-        if (!route.getAllowedMethods().isEmpty() &&
-            !route.getAllowedMethods().contains(method)) {
-            return error405(config);
         }
 
         if (route.isCgi()) {
@@ -219,7 +212,7 @@ private static HttpResponse generateDirectoryListing(File dir) {
             
             for (MultipartParser.Part part : parts) {
                 if (part.isFile() && part.getData().length > 0) {
-                    String filename = generateUniqueFilename(part.getFilename());
+                    String filename = sanitizeFilename(part.getFilename());
                     File uploadFile = new File(uploadsDir, filename);
                     
                     try (FileOutputStream fos = new FileOutputStream(uploadFile)) {
@@ -234,34 +227,64 @@ private static HttpResponse generateDirectoryListing(File dir) {
         
         Map<String, String> formData = request.getFormData();
         
-        String html = "<html><head><title>Upload Success</title>" +
-                     "<link rel='stylesheet' href='/style.css'></head><body>" +
-                     "<h1>Upload Successful!</h1>" +
-                     "<p><strong>Path:</strong> " + path + "<​/p>";
-        
-        if (!uploadedFiles.isEmpty()) {
-            html += "<h2>Uploaded Files:</h2><ul>";
-            for (String f : uploadedFiles) {
-                html += "<li><a href='/uploads/" + f + "' target='_blank'>" + f + "</a></li>";
+        // Load and populate the upload success template
+        try {
+            File templateFile = new File("www/upload-success.html");
+            String html = new String(Files.readAllBytes(templateFile.toPath()), StandardCharsets.UTF_8);
+            
+            // Replace upload path
+            html = html.replace("{{uploadPath}}", path);
+            
+            // Build files section
+            StringBuilder filesSection = new StringBuilder();
+            if (!uploadedFiles.isEmpty()) {
+                filesSection.append("<h2 class=\"section-title\">📁 Uploaded Files</h2>");
+                filesSection.append("<ul class=\"file-list\">");
+                for (String filename : uploadedFiles) {
+                    filesSection.append("<li class=\"file-item\">")
+                              .append("<span class=\"file-icon\">📄</span>")
+                              .append("<a href=\"/uploads/").append(filename).append("\" target=\"_blank\" class=\"file-link\">")
+                              .append(filename)
+                              .append("</a>")
+                              .append("</li>");
+                }
+                filesSection.append("</ul>");
+            } else {
+                filesSection.append("<div class=\"empty-state\">No files were uploaded</div>");
             }
-            html += "<​/ul>";
-        }
-        
-        if (!formData.isEmpty()) {
-            html += "<h2>Form Data:</h2><ul>";
-            for (Map.Entry<String, String> e : formData.entrySet()) {
-                html += "<li><strong>" + e.getKey() + ":</strong> " + e.getValue() + "<​/li>";
+            html = html.replace("{{filesSection}}", filesSection.toString());
+            
+            // Build form data section
+            StringBuilder formDataSection = new StringBuilder();
+            if (!formData.isEmpty()) {
+                formDataSection.append("<h2 class=\"section-title\">📋 Form Data</h2>");
+                formDataSection.append("<ul class=\"data-list\">");
+                for (Map.Entry<String, String> entry : formData.entrySet()) {
+                    formDataSection.append("<li class=\"data-item\">")
+                                 .append("<span class=\"data-key\">").append(entry.getKey()).append(":</span>")
+                                 .append("<span class=\"data-value\">").append(entry.getValue()).append("</span>")
+                                 .append("</li>");
+                }
+                formDataSection.append("</ul>");
+            } else {
+                formDataSection.append("");
             }
-            html += "<​/ul>";
+            html = html.replace("{{formDataSection}}", formDataSection.toString());
+            
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.addHeader("Content-Type", "text/html; charset=UTF-8");
+            response.setBody(html.getBytes(StandardCharsets.UTF_8));
+            return response;
+            
+        } catch (Exception e) {
+            System.err.println("[ERROR] Failed to load upload-success template: " + e.getMessage());
+            // Fallback to simple response
+            String fallbackHtml = "<html><body><h1>Upload Successful!</h1><p>Files uploaded to: " + path + "</p></body></html>";
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.addHeader("Content-Type", "text/html; charset=UTF-8");
+            response.setBody(fallbackHtml.getBytes(StandardCharsets.UTF_8));
+            return response;
         }
-        
-        html += "<hr><p><a href='/'>Back to Home</a></p></body></html>";
-        
-        HttpResponse response = new HttpResponse(200, "OK");
-        response.addHeader("Content-Type", "text/html; charset=UTF-8");
-        response.setBody(html.getBytes(StandardCharsets.UTF_8));
-        
-        return response;
         
     } catch (Exception e) {
         e.printStackTrace();
@@ -294,14 +317,8 @@ private static HttpResponse generateDirectoryListing(File dir) {
         return filename;
     }
     
-    // UUID + sanitize filename
-    private static String generateUniqueFilename(String originalName) {
-        String safeName = sanitizeFilename(originalName);
-        String uuid = UUID.randomUUID().toString();
-        return uuid + "_" + safeName;
-    }
 
-    private static HttpResponse handleDelete(String path, Config.Route route, Config config) {
+private static HttpResponse handleDelete(String path, Config.Route route, Config config) {
     try {
         System.out.println("[DELETE] Path: " + path);
         
@@ -339,18 +356,27 @@ private static HttpResponse generateDirectoryListing(File dir) {
         if (deleted) {
             System.out.println("[DELETE] Successfully deleted: " + file.getName());
             
-            String html = "<html><head><title>File Deleted</title>" +
-                         "<link rel='stylesheet' href='/style.css'></head><body>" +
-                         "<h1>File Deleted Successfully</h1>" +
-                         "<p><strong>File:</strong> " + file.getName() + "<​/p>" +
-                         "<p>The file has been permanently deleted.</p>" +
-                         "<hr><p><a href='/uploads/'>View Uploads</a> | " +
-                         "<a href='/'>Back to Home</a></p></body></html>";
-            
-            HttpResponse response = new HttpResponse(200, "OK");
-            response.addHeader("Content-Type", "text/html; charset=UTF-8");
-            response.setBody(html.getBytes(StandardCharsets.UTF_8));
-            return response;
+            // Load and populate the delete success template
+            try {
+                File templateFile = new File("www/delete-success.html");
+                String html = new String(Files.readAllBytes(templateFile.toPath()), StandardCharsets.UTF_8);
+                
+                html = html.replace("{{filename}}", file.getName());
+                
+                HttpResponse response = new HttpResponse(200, "OK");
+                response.addHeader("Content-Type", "text/html; charset=UTF-8");
+                response.setBody(html.getBytes(StandardCharsets.UTF_8));
+                return response;
+                
+            } catch (Exception e) {
+                System.err.println("[ERROR] Failed to load delete-success template: " + e.getMessage());
+                // Fallback to simple response
+                String fallbackHtml = "<html><body><h1>File Deleted</h1><p>File: " + file.getName() + "</p></body></html>";
+                HttpResponse response = new HttpResponse(200, "OK");
+                response.addHeader("Content-Type", "text/html; charset=UTF-8");
+                response.setBody(fallbackHtml.getBytes(StandardCharsets.UTF_8));
+                return response;
+            }
         } else {
             System.out.println("[DELETE] Failed to delete: " + file.getName());
             return error500(config);
@@ -437,17 +463,20 @@ private static HttpResponse handleLogin(HttpRequest request, Config config) {
     String method = request.getMethod();
     
     if (method.equals("GET")) {
+        // Check if user already has a valid session
         String sessionId = request.getCookie("SESSIONID");
         Session session = Session.getSession(sessionId);
         
         if (session != null && session.hasAttribute("username")) {
+            // User is already logged in, redirect to dashboard
             HttpResponse response = new HttpResponse(302, "Found");
             response.addHeader("Location", "/dashboard");
-            response.setBody("Already logged in");
+            response.setBody("Already logged in. Redirecting...");
             System.out.println("[LOGIN] User already logged in, redirecting to dashboard");
             return response;
         }
         
+        // User not logged in, show login form
         try {
             File loginFile = new File("www/login.html");
             byte[] content = Files.readAllBytes(loginFile.toPath());
