@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import src.http.Session;
+import java.util.UUID;
+
 
 public class Router {
     
@@ -217,7 +219,7 @@ private static HttpResponse generateDirectoryListing(File dir) {
             
             for (MultipartParser.Part part : parts) {
                 if (part.isFile() && part.getData().length > 0) {
-                    String filename = sanitizeFilename(part.getFilename());
+                    String filename = generateUniqueFilename(part.getFilename());
                     File uploadFile = new File(uploadsDir, filename);
                     
                     try (FileOutputStream fos = new FileOutputStream(uploadFile)) {
@@ -292,8 +294,14 @@ private static HttpResponse generateDirectoryListing(File dir) {
         return filename;
     }
     
+    // UUID + sanitize filename
+    private static String generateUniqueFilename(String originalName) {
+        String safeName = sanitizeFilename(originalName);
+        String uuid = UUID.randomUUID().toString();
+        return uuid + "_" + safeName;
+    }
 
-private static HttpResponse handleDelete(String path, Config.Route route, Config config) {
+    private static HttpResponse handleDelete(String path, Config.Route route, Config config) {
     try {
         System.out.println("[DELETE] Path: " + path);
         

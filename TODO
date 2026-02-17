@@ -1,5 +1,3 @@
-admin not logged even there's a session id
 check parsing config
-servers on config
 payload too large not working properly
-
+rename uploaded file using UUID

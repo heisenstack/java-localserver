@@ -7,7 +7,7 @@ import src.http.HttpResponse;
 
 public class Connection {
     private static final int INITIAL_BUFFER_SIZE = 8192;
-    private static final int MAX_BUFFER_SIZE = 32 * 1024 * 1024; // 10MB
+    private static final int MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
     private static final long TIMEOUT_MS = 30000; // 30 seconds
     
     private final SocketChannel channel;

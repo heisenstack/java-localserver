@@ -226,7 +226,7 @@
                 <form onsubmit="submitForm(event)">
                     <div class="form-row">
                         <input type="text" name="name" placeholder="Name" required>
-                        <input type="text" name="age" placeholder="Age" required>
+                        <input type="text" name="description" placeholder="Description" required>
                         <button type="submit" class="btn btn-primary">📨 Send Form</button>
                     </div>
                 </form>
@@ -274,7 +274,7 @@
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded"
                     },
-                    body: "name=laidi&age=27"
+                    body: "name=Zone01&description= Zone01 Oujda est prévue dans des locaux mis à disposition par l’université Mohammed Iᵉʳ"
                 });
                 
                 const text = await res.text();
