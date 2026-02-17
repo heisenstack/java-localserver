@@ -15,7 +15,7 @@
         {
           "path": "/uploads",
           "root": "uploads",
-          "methods": ["GET", "DELETE"],
+          "methods": ["GET", "POST", "DELETE"],
           "directory_listing": true,
           "index": "index.html"
         },
@@ -49,7 +49,7 @@
         {
           "path": "/uploads",
           "root": "uploads",
-          "methods": ["GET", "DELETE"],
+          "methods": ["GET", "POST", "DELETE"],
           "directory_listing": true,
           "index": "index.html"
         },

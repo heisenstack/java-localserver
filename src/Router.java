@@ -40,6 +40,11 @@ public class Router {
         if (route == null) {
             return error404(config);
         }
+        
+        if (!route.getAllowedMethods().isEmpty() &&
+            !route.getAllowedMethods().contains(method)) {
+            return error405(config);
+        }
 
         if (route.isCgi()) {
             return CGIHandler.handle(request, config);
