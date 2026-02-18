@@ -213,7 +213,10 @@ private static HttpResponse generateDirectoryListing(File dir) {
             for (MultipartParser.Part part : parts) {
                 if (part.isFile() && part.getData().length > 0) {
                     String filename = sanitizeFilename(part.getFilename());
-                    File uploadFile = new File(uploadsDir, filename);
+                    // File uploadFile = new File(uploadsDir, filename);
+                    String uniqueFilename = java.util.UUID.randomUUID() + "_" + filename;
+
+                    File uploadFile = new File(uploadsDir, uniqueFilename);
                     
                     try (FileOutputStream fos = new FileOutputStream(uploadFile)) {
                         fos.write(part.getData());
