@@ -42,7 +42,7 @@ public class Router {
         }
 
         if (route.isCgi()) {
-            return CGIHandler.handle(request, config);
+            return error404(config);
         }
 
         if (!route.getAllowedMethods().isEmpty() &&

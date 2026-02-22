@@ -2,6 +2,9 @@
 echo "Content-Type: text/html"
 echo ""
 
+# sleep 10
+# echo "done 10s"
+
 if [ "$REQUEST_METHOD" = "POST" ]; then
     read -n "$CONTENT_LENGTH" POST_DATA 2>/dev/null
     if [ -z "$POST_DATA" ]; then
