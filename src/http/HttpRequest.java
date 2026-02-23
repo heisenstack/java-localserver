@@ -94,17 +94,6 @@ public class HttpRequest {
     public void parseBody() {
         if (body == null || body.length == 0) return;
 
-        String transferEncoding = getHeader("transfer-encoding");
-
-        if (transferEncoding != null && transferEncoding.equalsIgnoreCase("chunked")) {
-        try {
-            body = decodeChunkedBody(body);
-        } catch (Exception e) {
-            System.err.println("[ERROR] Failed to decode chunked body: " + e.getMessage());
-            return;
-        }
-    }
-
         String contentType = getHeader("content-type");
 
         if (contentType != null && contentType.contains("application/x-www-form-urlencoded")) {
@@ -112,69 +101,6 @@ public class HttpRequest {
         } else if (contentType != null && contentType.contains("multipart/form-data")) {
             parseMultipart();
         }
-    }
-    
-    private byte[] decodeChunkedBody(byte[] chunkedBody) throws Exception {
-    java.io.ByteArrayOutputStream decoded = new java.io.ByteArrayOutputStream();
-    int pos = 0;
-
-    while (pos < chunkedBody.length) {
-        int lineEnd = findCRLF(chunkedBody, pos);
-        if (lineEnd == -1) {
-            throw new Exception("Invalid chunked encoding: missing size line");
-        }
-
-        String sizeLine = new String(chunkedBody, pos, lineEnd - pos)
-                .split(";")[0]
-                .trim();
-
-        int chunkSize;
-        try {
-            chunkSize = Integer.parseInt(sizeLine, 16);
-        } catch (NumberFormatException e) {
-            throw new Exception("Invalid chunk size: " + sizeLine);
-        }
-
-        pos = lineEnd + 2;
-
-        if (chunkSize == 0) {
-            while (pos < chunkedBody.length) {
-                int trailerEnd = findCRLF(chunkedBody, pos);
-                if (trailerEnd == -1 || trailerEnd == pos) {
-                    pos += 2;
-                    break;
-                }
-                pos = trailerEnd + 2;
-            }
-            break;
-        }
-
-        if (pos + chunkSize > chunkedBody.length) {
-            throw new Exception("Incomplete chunk data");
-        }
-
-        decoded.write(chunkedBody, pos, chunkSize);
-
-        pos += chunkSize;
-
-        if (pos + 1 >= chunkedBody.length ||
-            chunkedBody[pos] != '\r' ||
-            chunkedBody[pos + 1] != '\n') {
-            throw new Exception("Invalid chunk ending");
-        }
-        pos += 2;
-    }
-
-    return decoded.toByteArray();
-}
-
-    private int findCRLF(byte[] data, int start) {
-        for (int i = start; i < data.length - 1; i++) {
-           if (data[i] == '\r' && data[i + 1] == '\n') {
-               return i;
-            }
-        }
-               return -1;
     }
 
     private void parseMultipart() {

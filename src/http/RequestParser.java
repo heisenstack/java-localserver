@@ -12,9 +12,10 @@ public class RequestParser {
 
         String raw = new String(data, StandardCharsets.UTF_8);
         int headerEndIndex = raw.indexOf("\r\n\r\n");
-        if (headerEndIndex == -1) {
-            throw new RuntimeException("Invalid HTTP request: no header end found");
+           if (headerEndIndex == -1) {
+           throw new RuntimeException("Invalid HTTP request: no header end found");
         }
+        int bodyStart = findHeaderEndBytes(data);
 
         String headerSection = raw.substring(0, headerEndIndex);
         String[] lines = headerSection.split("\r\n");
@@ -44,10 +45,10 @@ public class RequestParser {
         String contentLength = req.getHeader("content-length");
 
         if (transferEncoding != null && transferEncoding.equalsIgnoreCase("chunked")) {
-            bodyBytes = readChunkedBody(ByteBuffer.wrap(data, headerEndIndex + 4, data.length - (headerEndIndex + 4)));
+            bodyBytes = readChunkedBody(ByteBuffer.wrap(data, bodyStart, data.length - bodyStart));
         } else if (contentLength != null) {
             int len = Integer.parseInt(contentLength);
-            bodyBytes = readFixedLengthBody(ByteBuffer.wrap(data, headerEndIndex + 4, data.length - (headerEndIndex + 4)), len);
+            bodyBytes = readFixedLengthBody(ByteBuffer.wrap(data, bodyStart, data.length - bodyStart), len);
         }
 
         req.setBody(bodyBytes);
@@ -59,23 +60,56 @@ public class RequestParser {
         return req;
     }
 
+    private static int findHeaderEndBytes(byte[] data) {
+      for (int i = 0; i < data.length - 3; i++) {
+        if (data[i] == '\r' && data[i+1] == '\n' 
+            && data[i+2] == '\r' && data[i+3] == '\n') {
+            return i + 4;
+           }
+        }
+        return -1;
+    }
+
     // ======= chunked =======
     private static byte[] readChunkedBody(ByteBuffer buffer) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        while (buffer.hasRemaining()) {
-            String line = readLine(buffer);
-            if (line == null) break;
-            int chunkSize = Integer.parseInt(line.trim(), 16);
-            if (chunkSize == 0) break;
-
-            byte[] chunk = new byte[chunkSize];
-            buffer.get(chunk);
-            out.write(chunk);
-
-            if (buffer.remaining() >= 2) buffer.position(buffer.position() + 2);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    
+    while (buffer.hasRemaining()) {
+        String line = readLine(buffer);
+        
+        if (line == null || line.isEmpty()) continue;
+        
+        int semicolon = line.indexOf(';');
+        if (semicolon != -1) {
+            line = line.substring(0, semicolon);
         }
-        return out.toByteArray();
+        
+        line = line.trim();
+        
+        if (line.isEmpty()) continue;
+        
+        int chunkSize;
+        try {
+            chunkSize = Integer.parseInt(line, 16);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid chunk size: '" + line + "'");
+        }
+        
+        if (chunkSize == 0) break;
+        
+        if (buffer.remaining() < chunkSize) {
+            throw new RuntimeException("Incomplete chunk data");
+        }
+        
+        byte[] chunk = new byte[chunkSize];
+        buffer.get(chunk);
+        out.write(chunk);
+        
+        readLine(buffer);
     }
+    
+    return out.toByteArray();
+}
 
     private static byte[] readFixedLengthBody(ByteBuffer buffer, int length) {
         byte[] body = new byte[length];
