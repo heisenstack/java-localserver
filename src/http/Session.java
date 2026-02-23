@@ -24,7 +24,6 @@ public class Session {
         String id = generateSessionId();
         Session session = new Session(id);
         sessions.put(id, session);
-        System.out.println("[SESSION] Created: " + id);
         return session;
     }
     
@@ -37,7 +36,6 @@ public class Session {
         
         if (session.isExpired()) {
             sessions.remove(id);
-            System.out.println("[SESSION] Expired: " + id);
             return null;
         }
         
@@ -48,7 +46,6 @@ public class Session {
 
     public static void destroySession(String id) {
         sessions.remove(id);
-        System.out.println("[SESSION] Destroyed: " + id);
     }
     
 

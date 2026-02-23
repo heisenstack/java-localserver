@@ -119,7 +119,7 @@ public class Server {
             if (conn.isRequestComplete()) {
 
                 if (conn.isContentLengthTooLarge()) {
-                    System.out.println("[413] Content-Length exceeds buffer limit");
+                    // System.out.println("[413] Content-Length exceeds buffer limit");
                     sendErrorAndWrite(key, client, conn, 413, "Payload Too Large");
                     return;
                 }
@@ -128,7 +128,7 @@ public class Server {
                 byte[]      body = req.getBody();
 
                 if (body != null && body.length > config.getClientBodySizeLimit()) {
-                    System.out.println("[413] Request body too large: " + body.length + " bytes");
+                    // System.out.println("[413] Request body too large: " + body.length + " bytes");
                     sendErrorAndWrite(key, client, conn, 413, "Payload Too Large");
                     return;
                 }
@@ -152,7 +152,7 @@ public class Server {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
+            // System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
             sendErrorAndWrite(key, client, conn, 400, "Bad Request");
         }
     }
