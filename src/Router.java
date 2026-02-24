@@ -295,15 +295,6 @@ private static HttpResponse generateDirectoryListing(File dir) {
     }
 }
 
-
-// private static String escapeHtml(String text) {
-//     if (text == null) return "";
-//     return text.replace("&", "&amp;")
-//                .replace("<​", "&lt;")
-//                .replace(">", "&gt;")
-//                .replace("\"", "&quot;")
-//                .replace("'", "&#x27;");
-// }
     
 
     private static String sanitizeFilename(String filename) {

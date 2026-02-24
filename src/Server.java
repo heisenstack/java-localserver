@@ -142,7 +142,7 @@ public class Server {
                         activeCgiProcesses.put(client, cgi);
                         
                     } catch (Exception e) {
-                        System.err.println("[CGI start error] " + e.getMessage());
+                        // System.err.println("[CGI start error] " + e.getMessage());
                         sendErrorAndWrite(key, client, conn, 500, "CGI Failed to Start");
                     }
                 } else {
