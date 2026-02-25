@@ -8,31 +8,21 @@ import src.Config.Route;
 public class Main {
 
     public static void main(String[] args) {
-
         try {
-
-            List<Config> configs =
-                    ConfigLoader.load("config.json");
+            
+            List<Config> configs = ConfigLoader.load("config.json");
 
             for (Config config : configs) {
-
                 for (Route r : config.getRoutes()) {
                     if (r.isCgi()) {
-                        config.setCgiRoot(
-                                new File(r.getRoot())
-                                        .getAbsolutePath());
+                        config.setCgiRoot(new File(r.getRoot()).getAbsolutePath());
                         break;
                     }
                 }
-
-                new Thread(() -> {
-                    try {
-                        new Server(config).start();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }).start();
             }
+
+            Server server = new Server(configs);
+            server.start();
 
         } catch (Exception e) {
             System.err.println("[FATAL] Server failed to start");

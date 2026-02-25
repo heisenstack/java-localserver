@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import src.http.HttpResponse;
+import src.Config;
 
 public class Connection {
 
@@ -12,6 +13,7 @@ public class Connection {
     private static final long TIMEOUT_MS = 30000;
 
     private final SocketChannel channel;
+    private final Config config;
     private ByteBuffer readBuffer;
     private ByteBuffer writeBuffer;
 
@@ -23,10 +25,15 @@ public class Connection {
     private long expectedContentLength = -1; 
     private boolean isChunked = false;
 
-    public Connection(SocketChannel channel) {
+    public Connection(SocketChannel channel, Config config) {
         this.channel = channel;
+        this.config = config;
         this.readBuffer = ByteBuffer.allocate(INITIAL_BUFFER_SIZE);
         this.lastActivityAt = System.currentTimeMillis();
+    }
+    
+    public Config getConfig() { 
+        return config; 
     }
 
     public void read() throws IOException {
@@ -195,5 +202,9 @@ public class Connection {
 
     public boolean isContentLengthTooLarge() {
         return expectedContentLength > MAX_BUFFER_SIZE;
+    }
+
+    public long getContentLength() { 
+        return expectedContentLength; 
     }
 }
