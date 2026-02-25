@@ -545,7 +545,6 @@ private static HttpResponse handleLogout(HttpRequest request, Config config) {
     response.addHeader("Location", "/");
     response.setBody("Logging out...");
     
-    System.out.println("[LOGOUT] User logged out");
     return response;
 }
 }
