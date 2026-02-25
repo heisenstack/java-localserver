@@ -227,7 +227,6 @@ public class Server {
         if (now - lastSessionCleanup > SESSION_CLEANUP_INTERVAL) {
             Session.cleanupExpiredSessions();
             lastSessionCleanup = now;
-            System.out.println("[CLEANUP] Active sessions: " + Session.getSessionCount());
         }
     }
 

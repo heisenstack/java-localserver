@@ -58,7 +58,7 @@ public class Router {
             case "GET":
                 return handleGet(path, route, config);
             case "POST":
-                return handlePost(path, route, request, config); // Only non-CGI POST
+                return handlePost(path, route, request, config);
             case "DELETE":
                 return handleDelete(path, route, config);
             default:
@@ -194,7 +194,6 @@ private static HttpResponse generateDirectoryListing(File dir) {
  private static HttpResponse handlePost(String path, Config.Route route, 
                                       HttpRequest request, Config config) {
     try {
-        System.out.println("[POST] Path: " + path);
         
         byte[] body = request.getBody();
         if (body != null && body.length > config.getClientBodySizeLimit()) {
@@ -213,7 +212,6 @@ private static HttpResponse generateDirectoryListing(File dir) {
             for (MultipartParser.Part part : parts) {
                 if (part.isFile() && part.getData().length > 0) {
                     String filename = sanitizeFilename(part.getFilename());
-                    // File uploadFile = new File(uploadsDir, filename);
                     String uniqueFilename = java.util.UUID.randomUUID() + "_" + filename;
 
                     File uploadFile = new File(uploadsDir, uniqueFilename);
@@ -223,7 +221,6 @@ private static HttpResponse generateDirectoryListing(File dir) {
                     }
                     
                     uploadedFiles.add(filename);
-                    System.out.println("[UPLOAD] Saved: " + filename);
                 }
             }
         }
@@ -314,7 +311,6 @@ private static HttpResponse generateDirectoryListing(File dir) {
 
 private static HttpResponse handleDelete(String path, Config.Route route, Config config) {
     try {
-        System.out.println("[DELETE] Path: " + path);
         
         String root = route.getRoot();
         if (root == null) {
@@ -331,31 +327,26 @@ private static HttpResponse handleDelete(String path, Config.Route route, Config
         File file = filePath.toFile();
         
         if (!filePath.startsWith(Paths.get(root).normalize())) {
-            System.out.println("[DELETE] Forbidden: directory traversal attempt");
             return error403(config);
         }
         
         if (!file.exists()) {
-            System.out.println("[DELETE] Not found: " + file.getAbsolutePath());
             return error404(config);
         }
         
         if (file.isDirectory()) {
-            System.out.println("[DELETE] Forbidden: cannot delete directory");
             return error403(config);
         }
         
         boolean deleted = file.delete();
         
         if (deleted) {
-            System.out.println("[DELETE] Successfully deleted: " + file.getName());
             
             HttpResponse response = new HttpResponse(200, "OK");
             response.addHeader("Content-Type", "text/plain; charset=UTF-8");
             response.setBody("File deleted successfully");
             return response;
         } else {
-            System.out.println("[DELETE] Failed to delete: " + file.getName());
             return error500(config);
         }
         
@@ -423,17 +414,6 @@ private static HttpResponse loadErrorPage(int statusCode, String reasonPhrase, C
     return response;
 }
 
-// private static Session getOrCreateSession(HttpRequest request, HttpResponse response) {
-//     String sessionId = request.getCookie("SESSIONID");
-//     Session session = Session.getSession(sessionId);
-    
-//     if (session == null) {
-//         session = Session.createSession();
-//         response.addSessionCookie("SESSIONID", session.getId());
-//     }
-    
-//     return session;
-// }
 
 private static HttpResponse handleLogin(HttpRequest request, Config config) {
     // System.out.println("[LOGIN] Handling login request" + request);
