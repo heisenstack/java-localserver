@@ -26,8 +26,18 @@ public class ConfigLoader {
 
             Config config = new Config();
 
-            config.setHost(
-                    JsonParser.getString(json, "host", "localhost"));
+            List<Object> hostsArray = JsonParser.getArray(json, "hosts");
+            if (!hostsArray.isEmpty()) {
+                for (Object h : hostsArray) {
+                    config.addHost(h.toString());
+                }
+                List<String> parsed = new java.util.ArrayList<>();
+                for (Object h : hostsArray) parsed.add(h.toString());
+                config.setHosts(parsed);
+            } else {
+                String singleHost = JsonParser.getString(json, "host", "localhost");
+                config.setHosts(new java.util.ArrayList<>(java.util.List.of(singleHost)));
+            }
 
             List<Object> portsArray =
                     JsonParser.getArray(json, "ports");
