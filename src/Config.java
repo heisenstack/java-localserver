@@ -6,7 +6,7 @@ import java.util.*;
 public class Config {
 
     private List<Integer> ports;
-    private String host;
+    private List<String> hosts;
     private String cgiRoot;
     private String defaultErrorPagePath;
     private int clientBodySizeLimit;
@@ -15,7 +15,7 @@ public class Config {
 
     public Config() {
         this.ports = new ArrayList<>();
-        this.host = "localhost";
+        this.hosts = new ArrayList<>();
         this.routes = new ArrayList<>();
         this.errorPages = new HashMap<>();
         this.clientBodySizeLimit = 1048576;
@@ -34,12 +34,20 @@ public class Config {
         this.ports = ports;
     }
 
-    public String getHost() {
-        return host;
+    public List<String> getHosts() {
+        return hosts;
     }
 
-    public void setHost(String host) {
-        this.host = host;
+    public void setHosts(List<String> hosts) {
+        this.hosts = hosts;
+    }
+
+    public void addHost(String host) {
+        this.hosts.add(host);
+    }
+
+    public String getHost() {
+        return hosts.isEmpty() ? "localhost" : hosts.get(0);
     }
 
     public String getCgiRoot() {
