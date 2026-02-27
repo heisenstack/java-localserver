@@ -26,8 +26,14 @@ public class ConfigLoader {
 
             Config config = new Config();
 
-            config.setHost(
-                    JsonParser.getString(json, "host", "localhost"));
+            List<Object> hostsArray = JsonParser.getArray(json, "hosts");
+            if (!hostsArray.isEmpty()) {
+                for (Object h : hostsArray) {
+                    config.addHost(h.toString());
+                }
+            } else {
+                config.addHost(JsonParser.getString(json, "host", "localhost"));
+            }
 
             List<Object> portsArray =
                     JsonParser.getArray(json, "ports");
