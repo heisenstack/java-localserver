@@ -27,17 +27,20 @@ public class Server {
 
     private void initServers() throws Exception {
         for (Config config : configs) {
-            for (int port : config.getPorts()) {
-                ServerSocketChannel server = ServerSocketChannel.open();
-                server.configureBlocking(false);
+            List<String> hosts = config.getHosts();
+            if (hosts == null || hosts.isEmpty()) hosts = List.of("0.0.0.0");
 
-                String host = config.getHost();
-                if (host == null || host.isEmpty()) host = "0.0.0.0";
+            for (String host : hosts) {
+                for (int port : config.getPorts()) {
+                    ServerSocketChannel server = ServerSocketChannel.open();
+                    server.configureBlocking(false);
 
-                server.bind(new InetSocketAddress(host, port));
-                server.register(selector, SelectionKey.OP_ACCEPT, config);
+                    String bindHost = (host == null || host.isEmpty()) ? "0.0.0.0" : host;
+                    server.bind(new InetSocketAddress(bindHost, port));
+                    server.register(selector, SelectionKey.OP_ACCEPT, config);
 
-                System.out.println("Listening on " + host + ":" + port);
+                    System.out.println("Listening on " + bindHost + ":" + port);
+                }
             }
         }
     }
