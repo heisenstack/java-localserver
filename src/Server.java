@@ -36,7 +36,8 @@ public class Server {
                     server.configureBlocking(false);
 
                     String bindHost = (host == null || host.isEmpty()) ? "0.0.0.0" : host;
-                    server.bind(new InetSocketAddress(bindHost, port));
+                    java.net.InetAddress addr = java.net.InetAddress.getByName(bindHost);
+                    server.bind(new InetSocketAddress(addr, port));
                     server.register(selector, SelectionKey.OP_ACCEPT, config);
 
                     System.out.println("Listening on " + bindHost + ":" + port);
