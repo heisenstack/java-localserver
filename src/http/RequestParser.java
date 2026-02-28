@@ -10,14 +10,14 @@ public class RequestParser {
         byte[] data = new byte[buffer.remaining()];
         buffer.get(data);
 
-        String raw = new String(data, StandardCharsets.UTF_8);
-        int headerEndIndex = raw.indexOf("\r\n\r\n");
-           if (headerEndIndex == -1) {
-           throw new RuntimeException("Invalid HTTP request: no header end found");
+        int headerEndIndex = findHeaderEndBytes(data);
+        if (headerEndIndex == -1) {
+             throw new RuntimeException("Invalid HTTP request: no header end found");
         }
+
         int bodyStart = findHeaderEndBytes(data);
 
-        String headerSection = raw.substring(0, headerEndIndex);
+        String headerSection = new String(data, 0, headerEndIndex, StandardCharsets.UTF_8);
         String[] lines = headerSection.split("\r\n");
 
         String[] requestLine = lines[0].split(" ");
@@ -112,6 +112,10 @@ public class RequestParser {
 }
 
     private static byte[] readFixedLengthBody(ByteBuffer buffer, int length) {
+        if (buffer.remaining() < length) {
+        throw new RuntimeException("Incomplete body");
+        }
+
         byte[] body = new byte[length];
         buffer.get(body, 0, Math.min(length, buffer.remaining()));
         return body;

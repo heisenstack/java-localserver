@@ -135,14 +135,16 @@ public class HttpRequest {
 
         for (String pair : query.split("&")) {
             String[] kv = pair.split("=", 2);
-            if (kv.length == 2) {
-                try {
-                    target.put(
-                        java.net.URLDecoder.decode(kv[0], "UTF-8"),
-                        java.net.URLDecoder.decode(kv[1], "UTF-8")
-                    );
-                } catch (Exception ignored) {}
-            }
+            // if (kv.length == 2) {
+            try {
+                String key = java.net.URLDecoder.decode(kv[0], "UTF-8");
+                String value = kv.length > 1
+                ? java.net.URLDecoder.decode(kv[1], "UTF-8")
+                : "";
+
+                target.put(key, value);
+            } catch (Exception ignored) {}
+            // }
         }
     }
 
@@ -157,15 +159,15 @@ public class HttpRequest {
 
     @Override
     public String toString() {
-        return "HttpRequest{" +
-                "method='" + method + '\n' +
-                "path='" + path + '\n' +
-                "version='" + version + '\n' +
-                "headers=" + headers + '\n' +
-                "cookies=" + cookies + '\n' +
-                "queryParams=" + queryParams + '\n' +
-                "formData=" + formData  + '\n' +
-                "multipartParts=" + multipartParts.size() +
-                '}';
+        return "HttpRequest{\n" +
+            "method='" + method + "'\n" +
+            "path='" + path + "'\n" +
+            "version='" + version + "'\n" +
+            "headers=" + headers + "\n" +
+            "cookies=" + cookies + "\n" +
+            "queryParams=" + queryParams + "\n" +
+            "formData=" + formData + "\n" +
+            "multipartParts=" + multipartParts.size() +
+            "\n}";
     }
 }
