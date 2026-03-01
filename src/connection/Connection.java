@@ -1,6 +1,6 @@
 package src.connection;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import src.http.HttpResponse;
@@ -11,6 +11,7 @@ public class Connection {
     private static final int INITIAL_BUFFER_SIZE = 8192;
     private static final int MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
     private static final long TIMEOUT_MS = 30000;
+    private static final int TEMP_FILE_THRESHOLD = 1 * 1024 * 1024; // 1MB
 
     private final SocketChannel channel;
     private final Config config;
@@ -25,6 +26,9 @@ public class Connection {
     private long expectedContentLength = -1; 
     private boolean isChunked = false;
 
+    private File tempBodyFile;
+    private FileOutputStream tempBodyOut;
+
     public Connection(SocketChannel channel, Config config) {
         this.channel = channel;
         this.config = config;
@@ -37,47 +41,31 @@ public class Connection {
     }
 
     public void read() throws IOException {
-        if (!readBuffer.hasRemaining()) {
-            expandBuffer();
-        }
+        if (!readBuffer.hasRemaining()) expandBuffer();
 
         int bytesRead = channel.read(readBuffer);
+        if (bytesRead == -1) throw new IOException("Client closed connection");
 
-        if (bytesRead == -1) {
-            throw new IOException("Client closed connection");
-        }
-
-        if (bytesRead > 0) {
-            lastActivityAt = System.currentTimeMillis();
-            System.out.println("[DEBUG] Read " + bytesRead + " bytes, total: " + readBuffer.position());
-        }
+        if (bytesRead > 0) lastActivityAt = System.currentTimeMillis();
 
         checkRequestComplete();
     }
 
     private void expandBuffer() throws IOException {
         int newCapacity = readBuffer.capacity() * 2;
-
-        if (newCapacity > MAX_BUFFER_SIZE) {
-            throw new IOException("Request too large");
-        }
+        if (newCapacity > MAX_BUFFER_SIZE) throw new IOException("Request too large");
 
         ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
         readBuffer.flip();
         newBuffer.put(readBuffer);
         readBuffer = newBuffer;
-
-        System.out.println("[DEBUG] Buffer expanded to " + newCapacity);
     }
 
-    private void checkRequestComplete() {
-
+    private void checkRequestComplete() throws IOException {
         int currentPos = readBuffer.position();
         readBuffer.flip();
-
         byte[] data = new byte[readBuffer.remaining()];
         readBuffer.get(data);
-
         readBuffer.clear();
         readBuffer.position(currentPos);
 
@@ -88,123 +76,97 @@ public class Connection {
             if (headerEnd == -1) return;
 
             headerEndPosition = headerEnd + 4;
-
             String headers = dataStr.substring(0, headerEnd).toLowerCase();
 
             if (headers.contains("transfer-encoding: chunked")) {
                 isChunked = true;
-                expectedContentLength = -2; // special flag
-                System.out.println("[DEBUG] Chunked request detected");
+                expectedContentLength = -2;
             } else {
                 expectedContentLength = extractContentLength(headers);
-                System.out.println("[DEBUG] Content-Length: " + expectedContentLength);
+            }
+
+            if (expectedContentLength > TEMP_FILE_THRESHOLD) {
+                tempBodyFile = File.createTempFile("http_body_", ".tmp");
+                tempBodyFile.deleteOnExit();
+                tempBodyOut = new FileOutputStream(tempBodyFile);
             }
         }
 
         if (headerEndPosition == -1) return;
 
-        // ===== HANDLE CHUNKED =====
         if (isChunked) {
             if (dataStr.contains("\r\n0\r\n\r\n")) {
                 requestComplete = true;
-                System.out.println("[DEBUG] Chunked request complete");
-            } else {
-                System.out.println("[DEBUG] Waiting for chunked body...");
+                closeTempFile();
             }
             return;
         }
 
-        // ===== HANDLE NORMAL =====
+        long bodyStart = headerEndPosition;
+        long bodyLength = data.length - bodyStart;
+
+        if (bodyLength > 0) {
+            if (tempBodyOut != null) {
+                tempBodyOut.write(data, (int) bodyStart, (int) bodyLength);
+            }
+        }
+
+        if (expectedContentLength >= 0 && bodyLength >= expectedContentLength) {
+            requestComplete = true;
+            closeTempFile();
+        }
+
         if (expectedContentLength == 0) {
             requestComplete = true;
-            System.out.println("[DEBUG] No body request complete");
-            return;
         }
+    }
 
-        long currentBodyLength = data.length - headerEndPosition;
-
-        if (expectedContentLength > 0) {
-            if (currentBodyLength >= expectedContentLength) {
-                requestComplete = true;
-                System.out.println("[DEBUG] Request complete (Content-Length)");
-            } else {
-                System.out.println("[DEBUG] Waiting body: " +
-                        currentBodyLength + "/" + expectedContentLength);
-            }
+    private void closeTempFile() throws IOException {
+        if (tempBodyOut != null) {
+            tempBodyOut.close();
+            tempBodyOut = null;
         }
     }
 
     private long extractContentLength(String headers) {
         String[] lines = headers.split("\r\n");
-
         for (String line : lines) {
             if (line.startsWith("content-length:")) {
-                try {
-                    return Long.parseLong(line.substring(15).trim());
-                } catch (Exception e) {
-                    return -1;
-                }
+                try { return Long.parseLong(line.substring(15).trim()); }
+                catch (Exception e) { return -1; }
             }
         }
-
         return 0;
     }
 
-    public void setResponse(HttpResponse response) {
-        this.writeBuffer = response.toByteBuffer();
-    }
+    public File getTempBodyFile() { return tempBodyFile; }
+
+    public void setResponse(HttpResponse response) { this.writeBuffer = response.toByteBuffer(); }
 
     public void write() throws IOException {
-        if (writeBuffer == null) {
-            throw new IOException("No response to write");
+        if (writeBuffer == null) throw new IOException("No response to write");
+
+        channel.write(writeBuffer);
+        if (!writeBuffer.hasRemaining()) writeComplete = true;
+    }
+
+    public boolean isRequestComplete() { return requestComplete; }
+    public boolean isWriteComplete() { return writeComplete; }
+    public boolean isTimedOut(long now) { return (now - lastActivityAt) > TIMEOUT_MS; }
+    public SocketChannel getChannel() { return channel; }
+    public boolean isContentLengthTooLarge() { return expectedContentLength > MAX_BUFFER_SIZE; }
+    public long getContentLength() { return expectedContentLength; }
+
+    public ByteBuffer getBuffer() throws IOException {
+        if (tempBodyFile != null) {
+            throw new IOException("Body stored in temp file, not in RAM");
         }
-
-        int bytesWritten = channel.write(writeBuffer);
-        
-        if (bytesWritten > 0) {
-            lastActivityAt = System.currentTimeMillis();
-            System.out.println("[DEBUG] Wrote " + bytesWritten + " bytes, remaining: " + writeBuffer.remaining());
-        }
-
-        if (!writeBuffer.hasRemaining()) {
-            writeComplete = true;
-        }
-    }
-
-    public boolean isRequestComplete() {
-        return requestComplete;
-    }
-
-    public boolean isWriteComplete() {
-        return writeComplete;
-    }
-
-    public boolean isTimedOut(long now) {
-        return (now - lastActivityAt) > TIMEOUT_MS;
-    }
-
-    public ByteBuffer getBuffer() {
         int currentPos = readBuffer.position();
         readBuffer.flip();
-
         byte[] data = new byte[readBuffer.remaining()];
         readBuffer.get(data);
-
         readBuffer.clear();
         readBuffer.position(currentPos);
-
         return ByteBuffer.wrap(data);
-    }
-
-    public SocketChannel getChannel() {
-        return channel;
-    }
-
-    public boolean isContentLengthTooLarge() {
-        return expectedContentLength > MAX_BUFFER_SIZE;
-    }
-
-    public long getContentLength() { 
-        return expectedContentLength; 
     }
 }
