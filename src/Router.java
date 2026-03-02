@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import src.http.Session;
+import java.io.InputStream;
 
 public class Router {
     
@@ -210,17 +211,28 @@ private static HttpResponse generateDirectoryListing(File dir) {
             }
             
             for (MultipartParser.Part part : parts) {
-                if (part.isFile() && part.getData().length > 0) {
+                if (part.isFile()) {
+                
+                    if (part.getTempFile() == null || part.getTempFile().length() == 0) {
+                        continue;
+                    }
+                
                     String filename = sanitizeFilename(part.getFilename());
                     String uniqueFilename = java.util.UUID.randomUUID() + "_" + filename;
-
+                
                     File uploadFile = new File(uploadsDir, uniqueFilename);
-                    
-                    try (FileOutputStream fos = new FileOutputStream(uploadFile)) {
-                        fos.write(part.getData());
+                
+                    try (InputStream in = part.getInputStream();
+                         FileOutputStream fos = new FileOutputStream(uploadFile)) {
+                
+                        byte[] buffer = new byte[8192];
+                        int read;
+                        while ((read = in.read(buffer)) != -1) {
+                            fos.write(buffer, 0, read);
+                        }
                     }
-                    
-                    uploadedFiles.add(filename);
+                
+                    uploadedFiles.add(uniqueFilename);
                 }
             }
         }

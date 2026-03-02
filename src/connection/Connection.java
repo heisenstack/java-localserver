@@ -9,9 +9,9 @@ import src.Config;
 public class Connection {
 
     private static final int INITIAL_BUFFER_SIZE = 8192;
-    private static final int MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final int MAX_BUFFER_SIZE = 10 * 1024 * 1024 * 1000; // 10MB
     private static final long TIMEOUT_MS = 30000;
-    private static final int TEMP_FILE_THRESHOLD = 1 * 1024 * 1024; // 1MB
+    private static final int TEMP_FILE_THRESHOLD = 2 * 1024 * 1024 * 1024; // 1MB
 
     private final SocketChannel channel;
     private final Config config;
@@ -158,7 +158,7 @@ public class Connection {
     public long getContentLength() { return expectedContentLength; }
 
     public ByteBuffer getBuffer() throws IOException {
-        if (tempBodyFile != null) {
+        if (tempBodyFile == null) {
             throw new IOException("Body stored in temp file, not in RAM");
         }
         int currentPos = readBuffer.position();

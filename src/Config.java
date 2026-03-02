@@ -9,7 +9,7 @@ public class Config {
     private List<String> hosts;
     private String cgiRoot;
     private String defaultErrorPagePath;
-    private int clientBodySizeLimit;
+    private long clientBodySizeLimit;
     private List<Route> routes;
     private Map<Integer, String> errorPages;
 
@@ -82,11 +82,11 @@ public class Config {
         this.errorPages.put(statusCode, filePath);
     }
 
-    public int getClientBodySizeLimit() {
+    public long getClientBodySizeLimit() {
         return clientBodySizeLimit;
     }
 
-    public void setClientBodySizeLimit(int limit) {
+    public void setClientBodySizeLimit(long limit) {
         this.clientBodySizeLimit = limit;
     }
 

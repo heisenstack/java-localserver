@@ -153,7 +153,7 @@ public class JsonParser {
         return result;
     }
 
-    private Number parseNumber() {
+    private Long parseNumber() {
         skipWhitespace();
         StringBuilder sb = new StringBuilder();
 
@@ -167,9 +167,9 @@ public class JsonParser {
 
         String numStr = sb.toString();
         if (numStr.contains(".")) {
-            return Double.parseDouble(numStr);
+            return Long.parseLong(numStr);
         } else {
-            return Integer.parseInt(numStr);
+            return Long.parseLong(numStr);
         }
     }
 
@@ -210,7 +210,7 @@ public class JsonParser {
         return new ArrayList<>();
     }
 
-    public static int getInt(Map<String, Object> map, String key, int defaultValue) {
+    public static long getInt(Map<String, Object> map, String key, long defaultValue) {
         Object value = map.get(key);
         if (value instanceof Number) {
             return ((Number) value).intValue();

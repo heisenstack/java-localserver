@@ -126,16 +126,17 @@ public class Server {
 
         try {
             conn.read();
-
+            
             if (!conn.isRequestComplete()) return;
-
+            
             if (conn.isContentLengthTooLarge() || conn.getContentLength() > config.getClientBodySizeLimit()) {
                 sendErrorAndWrite(key, client, conn, 413, "Payload Too Large");
                 return;
             }
-
+            
             key.interestOps(0);
-
+            
+            System.err.println("[ERROR----------------------------]");
             HttpRequest req = RequestParser.parse(conn.getBuffer());
 
             if (isCgiRequest(req, config)) {
