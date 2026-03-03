@@ -290,7 +290,6 @@ private static HttpResponse generateDirectoryListing(File dir) {
             
         } catch (Exception e) {
             System.err.println("[ERROR] Failed to load upload-success template: " + e.getMessage());
-            // Fallback to simple response
             String fallbackHtml = "<html><body><h1>Upload Successful!</h1><p>Files uploaded to: " + path + "</p></body></html>";
             HttpResponse response = new HttpResponse(200, "OK");
             response.addHeader("Content-Type", "text/html; charset=UTF-8");
@@ -428,16 +427,13 @@ private static HttpResponse loadErrorPage(int statusCode, String reasonPhrase, C
 
 
 private static HttpResponse handleLogin(HttpRequest request, Config config) {
-    // System.out.println("[LOGIN] Handling login request" + request);
     String method = request.getMethod();
     
     if (method.equals("GET")) {
-        // Check if user already has a valid session
         String sessionId = request.getCookie("SESSIONID");
         Session session = Session.getSession(sessionId);
         
         if (session != null && session.hasAttribute("username")) {
-            // User is already logged in, redirect to dashboard
             HttpResponse response = new HttpResponse(302, "Found");
             response.addHeader("Location", "/dashboard");
             response.setBody("Already logged in. Redirecting...");
@@ -445,7 +441,6 @@ private static HttpResponse handleLogin(HttpRequest request, Config config) {
             return response;
         }
         
-        // User not logged in, show login form
         try {
             File loginFile = new File("www/login.html");
             byte[] content = Files.readAllBytes(loginFile.toPath());
@@ -476,7 +471,6 @@ private static HttpResponse handleLogin(HttpRequest request, Config config) {
             response.addHeader("Location", "/dashboard");
             response.setBody("Redirecting...");
             
-            System.out.println("[LOGIN] User logged in: " + username);
             return response;
             
         } else {

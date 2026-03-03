@@ -9,9 +9,9 @@ import src.Config;
 public class Connection {
 
     private static final int INITIAL_BUFFER_SIZE = 8192;
-    private static final long MAX_BUFFER_SIZE = 10 * 1024 * 1024 * 1000; // 10MB
+    private static final long MAX_BUFFER_SIZE = 50 * 1024 * 1024; // 10MB
     private static final long TIMEOUT_MS = 30000;
-    private static final long TEMP_FILE_THRESHOLD = 2 * 1024 * 1024 * 1024; // 1MB
+    private static final long TEMP_FILE_THRESHOLD = 50 * 1024 * 1024; // 2MB
     private boolean keepAlive = false;
     private int requestCount = 0;
     private static final int MAX_REQUESTS = 100;
@@ -55,14 +55,16 @@ public class Connection {
     }
 
     private void expandBuffer() throws IOException {
-        int newCapacity = readBuffer.capacity() * 2;
-        if (newCapacity > MAX_BUFFER_SIZE) throw new IOException("Request too large");
-
-        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
-        readBuffer.flip();
-        newBuffer.put(readBuffer);
-        readBuffer = newBuffer;
+    if (tempBodyFile != null) {
+        return;
     }
+    int newCapacity = readBuffer.capacity() * 2;
+    if (newCapacity > MAX_BUFFER_SIZE) throw new IOException("Request too large");
+    ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
+    readBuffer.flip();
+    newBuffer.put(readBuffer);
+    readBuffer = newBuffer;
+}
 
     private void checkRequestComplete() throws IOException {
         int currentPos = readBuffer.position();
@@ -89,9 +91,13 @@ public class Connection {
             }
 
             if (expectedContentLength > TEMP_FILE_THRESHOLD) {
+            if (tempBodyFile == null) {
                 tempBodyFile = File.createTempFile("http_body_", ".tmp");
                 tempBodyFile.deleteOnExit();
                 tempBodyOut = new FileOutputStream(tempBodyFile);
+            }
+                tempBodyOut.write(readBuffer.array(), 0, readBuffer.position());
+                readBuffer.clear();
             }
         }
 
@@ -161,9 +167,12 @@ public class Connection {
     public long getContentLength() { return expectedContentLength; }
 
     public ByteBuffer getBuffer() throws IOException {
-        if (tempBodyFile == null) {
-            throw new IOException("Body stored in temp file, not in RAM");
-        }
+    if (tempBodyFile != null) {
+        FileInputStream fis = new FileInputStream(tempBodyFile);
+        byte[] data = fis.readAllBytes();
+        fis.close();
+        return ByteBuffer.wrap(data);
+    } else {
         int currentPos = readBuffer.position();
         readBuffer.flip();
         byte[] data = new byte[readBuffer.remaining()];
@@ -172,6 +181,8 @@ public class Connection {
         readBuffer.position(currentPos);
         return ByteBuffer.wrap(data);
     }
+}
+
     public void setKeepAlive(boolean keepAlive) {
         this.keepAlive = keepAlive;
     }

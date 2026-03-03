@@ -2,6 +2,7 @@ package src;
 
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
 
@@ -130,14 +131,21 @@ public class Server {
             if (!conn.isRequestComplete()) return;
             
             if (conn.isContentLengthTooLarge() || conn.getContentLength() > config.getClientBodySizeLimit()) {
-                sendErrorAndWrite(key, client, conn, 413, "Payload Too Large");
-                return;
+                  sendErrorAndWrite(key, client, conn, 413, "Payload Too Large");
+                  return;
             }
             
             key.interestOps(0);
             
             System.err.println("[ERROR----------------------------]");
             HttpRequest req = RequestParser.parse(conn.getBuffer());
+            // req.setBody(conn.getBuffer().array());
+            // req.parseBody();
+            ByteBuffer buffer = conn.getBuffer();
+            byte[] bodyData = new byte[buffer.remaining()];
+            buffer.get(bodyData);
+            req.setBody(bodyData);
+            req.parseBody();
             determineKeepAlive(conn, req);
             if (isCgiRequest(req, config)) {
                 try {
@@ -153,8 +161,13 @@ public class Server {
             }
 
         } catch (Exception e) {
-            System.err.println("[ERROR] Failed to parse request: " + e.getMessage());
-            sendErrorAndWrite(key, client, conn, 400, "Bad Request");
+           String msg = e.getMessage();
+           if (msg != null && (msg.contains("Request too large"))) {
+           sendErrorAndWrite(key, client, conn, 413, "Payload Too Large");
+        } else {
+             System.err.println("[ERROR] Failed to parse request: " + msg);
+             sendErrorAndWrite(key, client, conn, 500, "Internal Server Error");
+            }
         }
     }
 
