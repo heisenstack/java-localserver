@@ -81,7 +81,7 @@ public class Server {
                 else if (cgi.isTimeout()) res = createErrorResponse(504, "CGI Timeout");
                 else res = createErrorResponse(500, "CGI Error");
 
-                conn.setResponse(res);
+                prepareResponse(conn, res);
 
                 SelectionKey key = client.keyFor(selector);
                 if (key != null && key.isValid())
@@ -138,7 +138,7 @@ public class Server {
             
             System.err.println("[ERROR----------------------------]");
             HttpRequest req = RequestParser.parse(conn.getBuffer());
-
+            determineKeepAlive(conn, req);
             if (isCgiRequest(req, config)) {
                 try {
                     CgiProcess cgi = new CgiProcess(req, config);
@@ -148,7 +148,7 @@ public class Server {
                 }
             } else {
                 HttpResponse res = Router.route(req, config);
-                conn.setResponse(res);
+                prepareResponse(conn, res);
                 key.interestOps(SelectionKey.OP_WRITE);
             }
 
@@ -166,7 +166,15 @@ public class Server {
 
         try {
             conn.write();
-            if (conn.isWriteComplete()) close(client);
+            // if (conn.isWriteComplete()) close(client);
+            if (conn.isWriteComplete()) {
+            if (conn.isKeepAlive()) {
+                conn.resetForNextRequest();
+                key.interestOps(SelectionKey.OP_READ);
+            } else {
+              close(client);
+        }
+    }
         } catch (Exception e) {
             close(client);
         }
@@ -249,5 +257,32 @@ public class Server {
         response.addHeader("Content-Type", "text/html; charset=UTF-8");
         response.setBody(html);
         return response;
+    }
+    private void determineKeepAlive(Connection conn, HttpRequest req) {
+    String connectionHeader = req.getHeader("Connection");
+    String version = req.getVersion();
+
+    boolean keepAlive;
+
+    if ("HTTP/1.1".equals(version)) {
+        keepAlive = !"close".equalsIgnoreCase(connectionHeader);
+    } else {
+        keepAlive = connectionHeader != null &&
+                    connectionHeader.equalsIgnoreCase("keep-alive");
+    }
+
+        conn.setKeepAlive(keepAlive);
+    }
+    private void prepareResponse(Connection conn, HttpResponse res) {
+       if (conn.isKeepAlive()) {
+           res.addHeader("Connection", "keep-alive");
+        } else {
+           res.addHeader("Connection", "close");
+        }
+
+        res.addHeader("Content-Length",
+                  String.valueOf(res.getBodyLength()));
+
+        conn.setResponse(res);
     }
 }

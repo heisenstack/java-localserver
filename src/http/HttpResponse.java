@@ -124,5 +124,7 @@ public class HttpResponse {
         res.addHeader("Content-Type", "text/plain");
         return res;
     }
-
+    public int getBodyLength() {
+        return body == null ? 0 : body.length;
+    }
 }

@@ -9,9 +9,12 @@ import src.Config;
 public class Connection {
 
     private static final int INITIAL_BUFFER_SIZE = 8192;
-    private static final int MAX_BUFFER_SIZE = 10 * 1024 * 1024 * 1000; // 10MB
+    private static final long MAX_BUFFER_SIZE = 10 * 1024 * 1024 * 1000; // 10MB
     private static final long TIMEOUT_MS = 30000;
-    private static final int TEMP_FILE_THRESHOLD = 2 * 1024 * 1024 * 1024; // 1MB
+    private static final long TEMP_FILE_THRESHOLD = 2 * 1024 * 1024 * 1024; // 1MB
+    private boolean keepAlive = false;
+    private int requestCount = 0;
+    private static final int MAX_REQUESTS = 100;
 
     private final SocketChannel channel;
     private final Config config;
@@ -169,4 +172,35 @@ public class Connection {
         readBuffer.position(currentPos);
         return ByteBuffer.wrap(data);
     }
+    public void setKeepAlive(boolean keepAlive) {
+        this.keepAlive = keepAlive;
+    }
+
+    public boolean isKeepAlive() {
+         return keepAlive;
+    }
+
+    public void resetForNextRequest() {
+    readBuffer.clear();
+    writeBuffer = null;
+    requestComplete = false;
+    writeComplete = false;
+    headerEndPosition = -1;
+    expectedContentLength = -1;
+    isChunked = false;
+
+
+    if (tempBodyFile != null && tempBodyFile.exists()) {
+        tempBodyFile.delete();
+    }
+
+    tempBodyFile = null;
+
+    requestCount++;
+    if (requestCount >= MAX_REQUESTS) {
+        keepAlive = false;
+    }
+
+    lastActivityAt = System.currentTimeMillis();
+   }
 }
