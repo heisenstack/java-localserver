@@ -179,7 +179,6 @@ public class Server {
 
         try {
             conn.write();
-            // if (conn.isWriteComplete()) close(client);
             if (conn.isWriteComplete()) {
             if (conn.isKeepAlive()) {
                 conn.resetForNextRequest();
